@@ -6,7 +6,7 @@ echo "→ applying database migrations…"
 npx prisma migrate deploy
 
 echo "→ seeding admin (idempotent)…"
-node /app/prisma/seed.js || true
+npx tsx /app/prisma/seed.ts || true
 
 echo "→ starting FIFA Sweepstakes"
 exec node server.mjs

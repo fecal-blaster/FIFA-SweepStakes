@@ -16,12 +16,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
 RUN npm run build
-# Strip dev deps for the runtime image.
+# Strip dev deps for the runtime image. `tsx` stays because the entrypoint
+# uses it to run prisma/seed.ts and scripts/sync-fixtures.ts directly.
 RUN npm prune --omit=dev
-# Compile the small TS scripts to JS so the runtime doesn't need tsx.
-RUN npx --yes -p typescript tsc --target es2022 --module commonjs --moduleResolution node \
-    --esModuleInterop --skipLibCheck --resolveJsonModule \
-    --outDir dist-scripts prisma/seed.ts scripts/sync-fixtures.ts
 
 # --- runtime -------------------------------------------------------------
 FROM node:20-alpine AS runtime
@@ -35,11 +32,12 @@ COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY --from=build /app/server.mjs ./server.mjs
 COPY --from=build /app/next.config.js ./next.config.js
 COPY --from=build /app/prisma ./prisma
-COPY --from=build /app/dist-scripts/prisma/seed.js ./prisma/seed.js
-COPY --from=build /app/dist-scripts/scripts/sync-fixtures.js ./scripts/sync-fixtures.js
+COPY --from=build /app/src ./src
+COPY --from=build /app/scripts ./scripts
 COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
