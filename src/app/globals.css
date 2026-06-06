@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --font-display: "Bebas Neue", "Oswald", "Impact", sans-serif;
+}
+
+html,
+body {
+  background: #02060b;
+  background-image:
+    radial-gradient(1200px 600px at 15% -10%, rgba(126, 255, 50, 0.12), transparent 60%),
+    radial-gradient(900px 500px at 85% 0%, rgba(94, 240, 255, 0.07), transparent 60%),
+    linear-gradient(180deg, #03070d 0%, #01040a 100%);
+  background-attachment: fixed;
+  min-height: 100%;
+  color: #e9eef5;
+  font-feature-settings: "ss01", "cv01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 80px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glass {
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 60%, transparent 100%),
+    rgba(8, 14, 24, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.glass-strong {
+  background:
+    linear-gradient(160deg, rgba(126, 255, 50, 0.05) 0%, rgba(94, 240, 255, 0.02) 50%, transparent 100%),
+    rgba(8, 14, 24, 0.85);
+  border: 1px solid rgba(126, 255, 50, 0.18);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.scoreboard-num {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.row-enter {
+  animation: rank-up 0.4s ease-out;
+}
+
+.live-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #ff2747;
+  box-shadow: 0 0 0 0 rgba(255, 39, 71, 0.55);
+  animation: live-pulse 1.5s ease-out infinite;
+}
+
+.divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
+
+/* Custom scrollbar in dark style */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(126, 255, 50, 0.15);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(126, 255, 50, 0.3); background-clip: padding-box; }

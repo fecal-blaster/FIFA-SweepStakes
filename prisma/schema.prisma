@@ -1,0 +1,228 @@
+// FIFA Sweepstakes — data model
+// All money is stored in minor units (pence/cents) as Int.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Auth ---------------------------------------------------------------
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  auditLogs    AuditLog[]
+}
+
+// --- Tournament ---------------------------------------------------------
+
+enum TournamentStatus {
+  DRAFT
+  REGISTRATION_OPEN
+  DRAW_READY
+  LIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum DrawMode {
+  PURE_RANDOM
+  BALANCED
+}
+
+model Tournament {
+  id                  String           @id @default(cuid())
+  name                String
+  slug                String           @unique
+  competitionCode     String           // e.g. "WC" for the provider
+  buyInMinor          Int              // pence/cents per participant
+  currency            String           @default("GBP")
+  registrationDeadline DateTime?
+  drawAt              DateTime?
+  drawMode            DrawMode         @default(BALANCED)
+  status              TournamentStatus @default(DRAFT)
+  inviteCode          String           @unique
+  // Payout percentages stored as basis points (10000 = 100%)
+  // Default: 50% / 33.33% / 16.67%  -> [5000, 3333, 1667]
+  payoutBpsJson       Json             @default("[5000, 3333, 1667]")
+  // Optional override of scoring rules
+  scoringJson         Json?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  participants Participant[]
+  teams        Team[]
+  allocations  TeamAllocation[]
+  matches      Match[]
+  draws        Draw[]
+  scoreEvents  ScoreEvent[]
+  auditLogs    AuditLog[]
+
+  @@index([status])
+}
+
+// --- Participants & Teams ----------------------------------------------
+
+model Participant {
+  id           String   @id @default(cuid())
+  tournamentId String
+  name         String
+  email        String?
+  paid         Boolean  @default(false)
+  joinedAt     DateTime @default(now())
+
+  tournament  Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  allocations TeamAllocation[]
+
+  @@unique([tournamentId, name])
+  @@index([tournamentId])
+}
+
+model Team {
+  id           String  @id @default(cuid())
+  tournamentId String
+  // Provider's team id, if available (kept as string to be portable)
+  externalId   String?
+  name         String
+  shortName    String?
+  code         String? // FIFA 3-letter code
+  flagUrl      String?
+  crestUrl     String?
+  // 1 = strongest pot (lower number = stronger). Used by balanced draw.
+  tier         Int     @default(1)
+
+  tournament  Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  allocations TeamAllocation[]
+  homeMatches Match[]          @relation("HomeTeam")
+  awayMatches Match[]          @relation("AwayTeam")
+  scoreEvents ScoreEvent[]
+
+  @@unique([tournamentId, name])
+  @@index([tournamentId, tier])
+}
+
+model TeamAllocation {
+  id            String   @id @default(cuid())
+  tournamentId  String
+  drawId        String
+  participantId String
+  teamId        String
+  createdAt     DateTime @default(now())
+
+  tournament  Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  draw        Draw        @relation(fields: [drawId], references: [id], onDelete: Cascade)
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  team        Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([drawId, teamId])
+  @@index([tournamentId])
+  @@index([participantId])
+}
+
+// --- Draws (verifiable) ------------------------------------------------
+
+model Draw {
+  id            String   @id @default(cuid())
+  tournamentId  String
+  mode          DrawMode
+  seed          String   // human-readable: e.g. "fifa2026-9a7c4d"
+  seedSecret    String   // raw entropy used by PRNG (hex)
+  verifyHash    String   // sha256(seed + sortedTeams + sortedParticipants + mode + allocations)
+  inputDigest   String   // sha256 of canonical input snapshot (teams + participants + tiers)
+  createdAt     DateTime @default(now())
+  // When superseded by a redraw
+  supersededAt  DateTime?
+  redrawReason  String?
+  // True for the currently active draw
+  isActive      Boolean  @default(true)
+
+  tournament  Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  allocations TeamAllocation[]
+
+  @@index([tournamentId, isActive])
+}
+
+// --- Matches & scoring -------------------------------------------------
+
+enum MatchStage {
+  GROUP
+  ROUND_OF_16
+  QUARTER_FINAL
+  SEMI_FINAL
+  FINAL
+  THIRD_PLACE
+}
+
+enum MatchStatus {
+  SCHEDULED
+  IN_PLAY
+  PAUSED
+  FINISHED
+  POSTPONED
+  CANCELLED
+}
+
+model Match {
+  id            String      @id @default(cuid())
+  tournamentId  String
+  externalId    String?     @unique
+  stage         MatchStage
+  groupName     String?
+  kickoff       DateTime
+  status        MatchStatus @default(SCHEDULED)
+  homeTeamId    String?
+  awayTeamId    String?
+  homeScore     Int?
+  awayScore     Int?
+  // Includes penalty shootout winner if applicable: "HOME" | "AWAY" | null
+  winnerSide    String?
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  homeTeam   Team?      @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam   Team?      @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  events     ScoreEvent[]
+
+  @@index([tournamentId, stage])
+  @@index([tournamentId, status])
+}
+
+// One row per points-awarding event (idempotent by (matchId, teamId, kind))
+model ScoreEvent {
+  id            String   @id @default(cuid())
+  tournamentId  String
+  matchId       String?
+  teamId        String
+  kind          String   // "WIN" | "DRAW" | "LOSS" | "QUALIFY_R16" | "QUALIFY_QF" | ...
+  points        Int
+  createdAt     DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  match      Match?     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, teamId, kind])
+  @@index([tournamentId, teamId])
+}
+
+// --- Audit trail -------------------------------------------------------
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  tournamentId  String?
+  adminUserId   String?
+  action        String   // "TOURNAMENT_CREATE" | "DRAW_RUN" | "REDRAW" | ...
+  detailJson    Json?
+  createdAt     DateTime @default(now())
+
+  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
+  admin      AdminUser?  @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  @@index([tournamentId, createdAt])
+}

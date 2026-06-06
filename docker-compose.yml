@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fifa-sweepstakes-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fifa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fifa}
+      POSTGRES_DB: ${POSTGRES_DB:-fifa_sweepstakes}
+    volumes:
+      - fifa_pgdata:/var/lib/postgresql/data
+    # Map a port for local debugging only — comment out for prod-only.
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fifa} -d ${POSTGRES_DB:-fifa_sweepstakes}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build: .
+    image: fifa-sweepstakes:latest
+    container_name: fifa-sweepstakes
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fifa}:${POSTGRES_PASSWORD:-fifa}@db:5432/${POSTGRES_DB:-fifa_sweepstakes}?schema=public
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+      FOOTBALL_PROVIDER: ${FOOTBALL_PROVIDER:-football-data-org}
+      FOOTBALL_DATA_API_KEY: ${FOOTBALL_DATA_API_KEY:-}
+      FOOTBALL_DEFAULT_COMPETITION: ${FOOTBALL_DEFAULT_COMPETITION:-WC}
+      TZ: ${TIMEZONE:-Europe/London}
+    ports:
+      # Unraid LAN: http://192.168.1.110:7672 → container port 3000.
+      # Cloudflare Tunnel points at this same host:port from cloudflared.
+      - "${APP_PORT:-7672}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  fifa_pgdata:
