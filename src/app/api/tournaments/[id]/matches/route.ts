@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { handleError, notFound, ok } from "@/lib/api";
+import type { Prisma } from "@prisma/client";
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -11,7 +12,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     });
     if (!t) return notFound("Tournament not found");
 
-    const where: { tournamentId: string; status?: { in: string[] } } = { tournamentId: t.id };
+    const where: Prisma.MatchWhereInput = { tournamentId: t.id };
     if (scope === "live") where.status = { in: ["IN_PLAY", "PAUSED"] };
     if (scope === "upcoming") where.status = { in: ["SCHEDULED"] };
     if (scope === "recent") where.status = { in: ["FINISHED"] };
