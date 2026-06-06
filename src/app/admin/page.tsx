@@ -40,10 +40,10 @@ export default async function AdminHome() {
                   <h3 className="text-white font-medium">{t.name}</h3>
                   <StatusBadge status={t.status} />
                 </div>
-                <p className="text-xs text-pitch-700/70 mt-0.5">
+                <p className="text-xs text-white/55 mt-0.5">
                   {t._count.participants} participants · {t._count.teams} teams · Buy-in{" "}
                   {formatMoney(t.buyInMinor, t.currency)} · Invite{" "}
-                  <code className="text-accent-electric">{t.inviteCode}</code>
+                  <code className="text-lime-400">{t.inviteCode}</code>
                 </p>
               </div>
               <div className="flex gap-2">

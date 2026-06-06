@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card } from "@/components/ui";
 
@@ -25,6 +25,33 @@ export function AdminTournamentControls({
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [redrawReason, setRedrawReason] = useState("");
+  const [origin, setOrigin] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  // Read the current origin client-side so the invite link works whether the
+  // admin is on the LAN, Cloudflare hostname, or local dev.
+  useEffect(() => {
+    if (typeof window !== "undefined") setOrigin(window.location.origin);
+  }, []);
+  const inviteUrl = origin ? `${origin}/join/${tournament.inviteCode}` : `/join/${tournament.inviteCode}`;
+
+  async function copyInvite() {
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Fallback: select the text element so the user can ⌘C
+      const node = document.getElementById("invite-url");
+      if (node) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }
+    }
+  }
 
   async function call(name: string, fn: () => Promise<Response>) {
     setBusy(name);
@@ -106,11 +133,26 @@ export function AdminTournamentControls({
       )}
       {msg && <p className="mt-3 text-sm text-accent-electric">{msg}</p>}
       {err && <p className="mt-3 text-sm text-red-300">{err}</p>}
-      <hr className="my-4 border-pitch-700/40" />
-      <p className="text-xs text-pitch-700/80">
-        Share the invite link:{" "}
-        <code className="text-accent-electric">/join/{tournament.inviteCode}</code>
-      </p>
+      <hr className="my-4 border-white/10" />
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.25em] text-white/45 mb-2">
+          Share this invite link with participants
+        </p>
+        <div className="flex flex-wrap items-stretch gap-2">
+          <code
+            id="invite-url"
+            className="flex-1 min-w-0 truncate rounded-lg bg-ink-900/80 ring-1 ring-white/10 px-3 py-2 text-sm text-lime-400 font-mono"
+          >
+            {inviteUrl}
+          </code>
+          <Button variant="ghost" onClick={copyInvite}>
+            {copied ? "Copied ✓" : "Copy"}
+          </Button>
+        </div>
+        <p className="mt-2 text-[11px] text-white/45">
+          Invite code: <code className="text-white/70">{tournament.inviteCode}</code>
+        </p>
+      </div>
     </Card>
   );
 }
