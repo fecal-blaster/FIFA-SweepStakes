@@ -37,6 +37,8 @@ services:
       FOOTBALL_DEFAULT_COMPETITION: ${FOOTBALL_DEFAULT_COMPETITION:-WC}
       TZ: ${TIMEZONE:-Pacific/Auckland}
       APP_TZ: ${TIMEZONE:-Pacific/Auckland}
+      SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-60}
+      DISABLE_AUTO_SYNC: ${DISABLE_AUTO_SYNC:-0}
     ports:
       # Unraid LAN: http://192.168.1.110:7672 → container port 3000.
       # Cloudflare Tunnel points at this same host:port from cloudflared.
