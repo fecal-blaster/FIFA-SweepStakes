@@ -39,62 +39,135 @@ export default function InfoPage() {
         </div>
       </section>
 
-      {/* FAIRNESS */}
-      <section className="grid lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2">
-          <SectionHeader eyebrow="So nobody gets the bin teams" title="The balanced draw, in plain English" />
+      {/* RANKINGS — INPUT */}
+      <section>
+        <SectionHeader eyebrow="Source of truth" title="Every team has a FIFA ranking" />
+        <Card>
           <div className="space-y-3 text-sm text-white/75 leading-relaxed">
             <p>
-              Without this, Dave pulls Argentina, France, Brazil, and England
-              while you end up with Costa Rica, Iran, Tunisia, and Saudi Arabia.
-              That's the joke that gets old by the second match.
+              The draw doesn't care about gut feel. Each team carries an actual
+              <span className="text-lime-400"> FIFA Men's World Ranking score</span>{" "}
+              — Argentina around 1886, France around 1854, England around 1819,
+              all the way down. Tournament admins can pre-load the current
+              list with one click and tweak any number that doesn't match
+              their view.
             </p>
             <p>
-              Balanced mode prevents this. Teams are sorted into{" "}
-              <span className="text-lime-400 font-medium">strength tiers</span>{" "}
-              (Tier 1 = strongest pot, Tier 4 = weakest), and each tier is shuffled
-              independently. The system deals one team at a time, always to the
-              participant with the{" "}
-              <span className="text-lime-400 font-medium">lowest current count</span>{" "}
-              from that tier — with random tie-breaks so it stays unpredictable.
-            </p>
-            <p>
-              The result: with 32 teams across 4 tiers of 8 and 8 participants,
-              <em className="not-italic text-white"> everyone gets exactly one team
-              from each tier</em>. With 10 participants, two of them get an extra
-              team — but never two top-tier teams. The distribution is always
-              within ±1 across the room.
+              Those numbers feed the strength balancer directly, so a player
+              holding 3 strong teams won't quietly outweigh a player holding
+              5 weaker ones — they'll both end up with the same combined
+              pool strength, plus or minus a sliver.
             </p>
           </div>
-          <div className="mt-5 rounded-xl bg-ink-900/60 ring-1 ring-white/8 p-4">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-white/40 mb-2">
-              Example — 8 players, 32 teams
+        </Card>
+      </section>
+
+      {/* FAIRNESS — ALGORITHM */}
+      <section className="grid lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2">
+          <SectionHeader
+            eyebrow="No-one gets the bin teams"
+            title="The balanced draw in plain English"
+          />
+          <div className="space-y-3 text-sm text-white/75 leading-relaxed">
+            <p>
+              Without the balancer, Dave pulls Argentina, France, Brazil, and
+              England while you end up with Costa Rica, Iran, Tunisia, and
+              Saudi Arabia. That's the joke that gets old by the second match.
             </p>
-            <div className="grid grid-cols-4 gap-2 text-xs font-mono">
-              <TierColumn label="Tier 1" colour="text-gold-400" teams={["ARG", "FRA", "BRA", "ENG", "ESP", "POR", "NED", "GER"]} />
-              <TierColumn label="Tier 2" colour="text-silver-400" teams={["ITA", "CRO", "BEL", "URU", "COL", "MAR", "USA", "MEX"]} />
-              <TierColumn label="Tier 3" colour="text-bronze-400" teams={["SUI", "DEN", "SEN", "JPN", "AUS", "POL", "KOR", "ECU"]} />
-              <TierColumn label="Tier 4" colour="text-white/55" teams={["CAN", "KSA", "TUN", "IRN", "GHA", "CMR", "CRC", "SRB"]} />
-            </div>
-            <p className="mt-3 text-[11px] text-white/50">
-              Each player draws one team per column. Random within the column,
-              fair across the room.
+            <p>The draw runs in two passes.</p>
+            <p className="text-white font-medium">Pass 1 — deal every team once.</p>
+            <p>
+              Teams get sorted into four pots (top 25% by ranking → Tier 1,
+              etc.). The system deals one team at a time. When more than one
+              participant could take a team, it narrows the field through
+              these tie-breakers, in order:
+            </p>
+            <ol className="list-decimal pl-5 space-y-1 text-white/70">
+              <li>Fewest teams overall</li>
+              <li>Fewest teams from this pot</li>
+              <li>
+                Fewest of your existing teams that this one would play in the
+                group stage <span className="text-white/45">(reduces self-clashes)</span>
+              </li>
+              <li>
+                Furthest below the fair pool-strength share{" "}
+                <span className="text-white/45">(keeps combined rankings flat)</span>
+              </li>
+            </ol>
+            <p>
+              If multiple candidates are still tied, the cryptographic PRNG
+              picks between them.
+            </p>
+            <p className="text-white font-medium">Pass 2 — top up to equal counts.</p>
+            <p>
+              When 48 teams don't divide evenly across, say, 11 players, some
+              teams have to be{" "}
+              <span className="text-lime-400">shared</span> so everyone ends
+              up holding the same number. Both owners earn the team's points
+              equally. The algorithm picks each duplicate's source from a
+              player who hasn't shared a team yet — so the sharing burden
+              spreads across the room instead of doubling up on the same
+              person.
+            </p>
+            <p>
+              When the maths force someone to end up with two shared teams
+              (true minimum given the player count), it picks the people for
+              that role at random.
             </p>
           </div>
         </Card>
 
         <Card glow>
-          <SectionHeader eyebrow="Or go full chaos" title="Pure random mode" />
+          <SectionHeader eyebrow="Or skip the maths" title="Pure random mode" />
           <p className="text-sm text-white/75 leading-relaxed">
-            The original sweepstake format. All teams in one pool, shuffled with
-            a cryptographic PRNG, dealt round-robin. Quick and brutal — better
-            for short tournaments where the variance is half the fun.
+            One pool, shuffled with a cryptographic PRNG, dealt round-robin.
+            Still uses duplicates to even out counts and still caps the
+            shared-team load — but doesn't try to balance strength or avoid
+            clashes. Quick and unpredictable when variance is the whole point.
           </p>
           <p className="mt-3 text-sm text-white/75 leading-relaxed">
             Admins pick the mode when creating a sweepstake. The choice is
-            recorded in the draw's audit trail, so participants always know
-            which one they're getting.
+            recorded in the draw's audit trail so participants always know
+            which one ran.
           </p>
+        </Card>
+      </section>
+
+      {/* DUPLICATES EXAMPLE */}
+      <section>
+        <SectionHeader eyebrow="Worked example" title="48 teams, 11 players" />
+        <Card>
+          <div className="grid sm:grid-cols-3 gap-4 text-sm">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-white/40 mb-1">
+                Target per player
+              </p>
+              <p className="scoreboard-num text-3xl text-lime-400">5</p>
+              <p className="text-white/60 mt-1">
+                ⌈48 ÷ 11⌉ — everyone holds the same count.
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-white/40 mb-1">
+                Duplicates needed
+              </p>
+              <p className="scoreboard-num text-3xl text-cyan-400">7</p>
+              <p className="text-white/60 mt-1">
+                11 × 5 − 48 = 7 teams get a second owner.
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-white/40 mb-1">
+                Shared-team load
+              </p>
+              <p className="scoreboard-num text-3xl text-gold-400">≤ 2</p>
+              <p className="text-white/60 mt-1">
+                Most players end up with one shared team; at most a couple
+                with two when maths force it.
+              </p>
+            </div>
+          </div>
         </Card>
       </section>
 
@@ -103,10 +176,10 @@ export default function InfoPage() {
         <SectionHeader eyebrow="Points" title="Default scoring system" />
         <Card>
           <p className="text-sm text-white/70 mb-5">
-            Points are awarded automatically as matches finish. Both group-stage
-            results and knockout progression count — so picking up a team that
-            quietly survives to the quarter-finals can win the whole thing.
-            Admins can override any of these per tournament.
+            Points are awarded automatically as matches finish. Group-stage
+            results and knockout progression both count — picking up a team
+            that quietly survives to the quarter-finals can win the whole
+            thing. Admins can override any of these per tournament.
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
             <ScoringTable
@@ -131,8 +204,7 @@ export default function InfoPage() {
           </div>
           <p className="mt-5 text-xs text-white/45">
             Points stack — a team that wins the final picks up the W points,
-            the qualify-for-final points,{" "}
-            <em className="not-italic">and</em> the champion bonus.
+            the qualify-for-final points, and the champion bonus.
           </p>
         </Card>
       </section>
@@ -144,16 +216,23 @@ export default function InfoPage() {
           <p className="text-sm text-white/70 leading-relaxed">
             Every draw gets a public seed (e.g.{" "}
             <code className="text-lime-400">fifa2026-9a7c4d</code>) plus a
-            SHA-256 hash of the result. Click <em>Verify draw</em> on the draw
-            page and the server re-runs the whole thing from the seed — if a
-            single team got moved after the fact, the hashes wouldn't match
-            and we'd know.
+            SHA-256 hash of the whole result. The hash covers the participant
+            list, the team list <em className="not-italic">with their
+            ranking points</em>, the group-stage fixture list, the seed, and
+            the final allocations. Change a single number and the hash
+            wouldn't match.
           </p>
           <p className="text-sm text-white/70 leading-relaxed mt-3">
-            Redraws are allowed (someone forgot to pay, or the team list was
+            Click <em>Verify draw</em> on any draw page and the server
+            re-runs the whole algorithm from the seed. If a single team got
+            shuffled around after the fact, the recomputed hash wouldn't
+            match the stored one and you'd see it instantly.
+          </p>
+          <p className="text-sm text-white/70 leading-relaxed mt-3">
+            Redraws are allowed (someone forgot to pay, the team list was
             wrong) but they get logged with a reason and the old draw stays
-            visible. The whole history is on the public draw page so nobody
-            has to take anyone's word for it.
+            visible forever. The whole history is on the public draw page so
+            nobody has to take anyone's word for it.
           </p>
         </Card>
       </section>
@@ -174,29 +253,6 @@ export default function InfoPage() {
           Source code on GitHub ↗
         </a>
       </div>
-    </div>
-  );
-}
-
-function TierColumn({
-  label,
-  colour,
-  teams
-}: {
-  label: string;
-  colour: string;
-  teams: string[];
-}) {
-  return (
-    <div>
-      <p className={`text-[10px] uppercase tracking-[0.2em] mb-1.5 ${colour}`}>{label}</p>
-      <ul className="space-y-0.5">
-        {teams.map((t) => (
-          <li key={t} className="text-white/75">
-            {t}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

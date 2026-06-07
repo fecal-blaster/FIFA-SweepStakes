@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { Card, SectionHeader } from "@/components/ui";
+import { Card, Flag, SectionHeader } from "@/components/ui";
 import { DEFAULT_SCORING, type ScoringRules } from "@/lib/scoring";
 import { distributePrizePool, formatMoney } from "@/lib/money";
 
@@ -10,7 +10,10 @@ export const dynamic = "force-dynamic";
 export default async function TournamentInfoPage({ params }: { params: { slug: string } }) {
   const t = await prisma.tournament.findUnique({
     where: { slug: params.slug },
-    include: { participants: { where: { paid: true }, select: { id: true } } }
+    include: {
+      teams: { orderBy: { rankingPoints: "desc" } },
+      participants: { where: { paid: true }, select: { id: true } }
+    }
   });
   if (!t) notFound();
 
@@ -19,6 +22,16 @@ export default async function TournamentInfoPage({ params }: { params: { slug: s
   const payoutBps = (t.payoutBpsJson as number[]) ?? [5000, 3333, 1667];
   const pool = t.participants.length * t.buyInMinor;
   const projectedPrizes = distributePrizePool(pool, payoutBps);
+
+  const teamCount = t.teams.length;
+  const playerCount = t.participants.length;
+  // Pool-shape stats for the worked example.
+  const target = playerCount > 0 ? Math.ceil(teamCount / playerCount) : 0;
+  const duplicatesNeeded = playerCount > 0 ? target * playerCount - teamCount : 0;
+  const strongest = t.teams[0];
+  const weakest = t.teams[t.teams.length - 1];
+  const tierCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  for (const team of t.teams) tierCounts[team.tier] = (tierCounts[team.tier] ?? 0) + 1;
 
   return (
     <div className="space-y-8">
@@ -32,47 +45,93 @@ export default async function TournamentInfoPage({ params }: { params: { slug: s
         </Link>
       </header>
 
-      {/* FAIRNESS */}
+      {/* DRAW ALGORITHM */}
       <Card>
         <SectionHeader
           eyebrow={t.drawMode === "BALANCED" ? "Balanced draw" : "Pure random"}
-          title={
-            t.drawMode === "BALANCED"
-              ? "Why no-one gets all the favourites"
-              : "Pure random draw"
-          }
+          title={t.drawMode === "BALANCED" ? "How the teams get split" : "Pure random draw"}
         />
         {t.drawMode === "BALANCED" ? (
           <div className="space-y-3 text-sm text-white/75 leading-relaxed">
             <p>
-              Each team has a{" "}
-              <span className="text-lime-400">FIFA ranking score</span>. The
-              draw runs in two passes — first it deals every team once,
-              narrowing candidates through these tie-breakers in order:
+              Each team carries an actual{" "}
+              <span className="text-lime-400">FIFA Men's World Ranking score</span>{" "}
+              — the same numbers FIFA publishes. The strength balancer uses
+              them directly so a player holding 3 strong teams won't outweigh
+              one holding 5 weaker ones.
+            </p>
+            <p className="text-white font-medium">Pass 1 — deal every team once.</p>
+            <p>
+              Teams are split into four pots by ranking (top quartile → T1).
+              The system deals one at a time, narrowing the candidate set:
             </p>
             <ol className="list-decimal pl-5 space-y-1 text-white/70">
               <li>Fewest teams so far</li>
-              <li>Fewest teams from this tier</li>
+              <li>Fewest teams from this pot</li>
               <li>Fewest of your existing teams that this one would play in the group stage</li>
               <li>Furthest below the fair pool-strength share</li>
             </ol>
             <p>
-              If the team count doesn't divide evenly, a second pass deals{" "}
-              <span className="text-lime-400">duplicates</span> so everyone
-              ends up with the same number of teams. Each duplicate is
-              sourced — where possible — from a player who hasn't shared a
-              team yet, so the sharing burden spreads across the room rather
-              than landing twice on the same person. Both owners earn the
-              team's points equally.
+              Cryptographic PRNG picks between any candidates still tied.
+            </p>
+            <p className="text-white font-medium">Pass 2 — top up to equal counts.</p>
+            <p>
+              When the team count doesn't divide evenly, some teams become{" "}
+              <span className="text-lime-400">shared</span> so everyone holds
+              the same number. Both owners earn the team's points equally.
+              The algorithm picks each duplicate's source from a player who
+              hasn't shared a team yet — so the load spreads across the room
+              instead of doubling up on one person.
             </p>
           </div>
         ) : (
           <p className="text-sm text-white/75 leading-relaxed">
-            All teams sit in one pool, shuffled with a cryptographic PRNG and dealt
-            round-robin. Quick and unpredictable — variance is half the fun.
+            All teams sit in one pool, shuffled with a cryptographic PRNG and
+            dealt round-robin. Still uses duplicates so everyone ends up
+            holding the same count and still caps the sharing — but skips
+            strength balance and clash avoidance. Variance is the whole point.
           </p>
         )}
       </Card>
+
+      {/* WORKED EXAMPLE */}
+      {teamCount > 0 && playerCount > 0 && (
+        <Card>
+          <SectionHeader eyebrow="This tournament" title="The numbers" />
+          <div className="grid sm:grid-cols-4 gap-3 text-sm">
+            <Stat label="Teams" value={teamCount.toString()} />
+            <Stat label="Players (paid)" value={playerCount.toString()} />
+            <Stat label="Teams each" value={target.toString()} accent="lime" />
+            <Stat
+              label="Shared teams"
+              value={duplicatesNeeded.toString()}
+              accent={duplicatesNeeded === 0 ? "default" : "cyan"}
+              hint={duplicatesNeeded === 0 ? "divides evenly" : "to even the count"}
+            />
+          </div>
+          {strongest && weakest && (
+            <div className="mt-4 grid sm:grid-cols-2 gap-3">
+              <RankSnapshot label="Highest ranked" team={strongest} accent="text-gold-400" />
+              <RankSnapshot label="Lowest ranked" team={weakest} accent="text-white/50" />
+            </div>
+          )}
+          <div className="mt-4 grid grid-cols-4 gap-2">
+            {[1, 2, 3, 4].map((tier) => (
+              <div
+                key={tier}
+                className="rounded-lg bg-ink-900/60 ring-1 ring-white/8 px-3 py-2"
+              >
+                <div className="text-[10px] uppercase tracking-[0.18em] text-white/45">
+                  Pot T{tier}
+                </div>
+                <div className="scoreboard-num text-xl text-white mt-0.5">
+                  {tierCounts[tier] ?? 0}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* SCORING */}
       <Card>
@@ -81,8 +140,8 @@ export default async function TournamentInfoPage({ params }: { params: { slug: s
           title="Points for this tournament"
         />
         <p className="text-sm text-white/70 mb-5">
-          Points are awarded automatically as matches finish. Group-stage results
-          and knockout progression both count.
+          Points are awarded automatically as matches finish. Group-stage
+          results and knockout progression both count.
         </p>
         <div className="grid sm:grid-cols-2 gap-3">
           <ScoringTable
@@ -105,8 +164,8 @@ export default async function TournamentInfoPage({ params }: { params: { slug: s
           />
         </div>
         <p className="mt-4 text-xs text-white/45">
-          Points stack — a team that wins the final picks up the W points, the
-          qualify-for-final points, and the champion bonus.
+          Points stack — a team that wins the final picks up the W points,
+          the qualify-for-final points, and the champion bonus.
         </p>
       </Card>
 
@@ -142,14 +201,20 @@ export default async function TournamentInfoPage({ params }: { params: { slug: s
       <Card>
         <SectionHeader eyebrow="Trust, but verify" title="Auditing the draw" />
         <p className="text-sm text-white/70 leading-relaxed">
-          Every draw publishes a seed (e.g.{" "}
-          <code className="text-lime-400">fifa2026-9a7c4d</code>) plus a SHA-256
-          verify hash. Anyone can re-run the draw from the seed and confirm the
-          hashes match — see the{" "}
+          The draw publishes a public seed and a SHA-256 hash covering the
+          participants, the teams <em className="not-italic">with their
+          ranking points</em>, the group-stage fixtures, the seed, and the
+          final allocations. Change a single number and the hash wouldn't
+          match.
+        </p>
+        <p className="text-sm text-white/70 leading-relaxed mt-3">
+          Click <em>Verify draw</em> on the{" "}
           <Link href={`/t/${t.slug}/draw`} className="text-lime-400 hover:underline">
             draw page
           </Link>{" "}
-          for the seed, hash, and a one-click verifier.
+          and the server re-runs the whole algorithm from the seed. If the
+          recomputed hash matches the stored one, the draw is exactly what
+          it claims to be.
         </p>
       </Card>
     </div>
@@ -174,6 +239,49 @@ function ScoringTable({ title, rows }: { title: string; rows: [string, string][]
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  hint,
+  accent = "default"
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  accent?: "default" | "lime" | "cyan";
+}) {
+  const colour =
+    accent === "lime" ? "text-lime-400" : accent === "cyan" ? "text-cyan-400" : "text-white";
+  return (
+    <div className="rounded-lg bg-ink-900/60 ring-1 ring-white/8 px-3 py-2">
+      <div className="text-[10px] uppercase tracking-[0.18em] text-white/45">{label}</div>
+      <div className={`scoreboard-num text-2xl mt-0.5 ${colour}`}>{value}</div>
+      {hint && <div className="text-[11px] text-white/45 mt-0.5">{hint}</div>}
+    </div>
+  );
+}
+
+function RankSnapshot({
+  label,
+  team,
+  accent
+}: {
+  label: string;
+  team: { name: string; code: string | null; rankingPoints: number };
+  accent: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg bg-ink-900/60 ring-1 ring-white/8 px-3 py-2">
+      <Flag code={team.code} size="lg" />
+      <div className="flex-1 min-w-0">
+        <div className="text-[10px] uppercase tracking-[0.18em] text-white/45">{label}</div>
+        <div className={`text-sm font-medium truncate ${accent}`}>{team.name}</div>
+      </div>
+      <div className="scoreboard-num text-xl text-white tabular">{team.rankingPoints}</div>
     </div>
   );
 }
