@@ -6,6 +6,7 @@ import { audit } from "@/lib/audit";
 
 const PatchSchema = z.object({
   name: z.string().min(1).max(80).optional(),
+  currency: z.string().length(3).optional(),
   status: z.enum(["DRAFT", "REGISTRATION_OPEN", "DRAW_READY", "LIVE", "COMPLETED", "CANCELLED"]).optional(),
   drawMode: z.enum(["PURE_RANDOM", "BALANCED"]).optional(),
   buyInMinor: z.number().int().min(0).max(1_000_000).optional(),
@@ -24,6 +25,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       where: { id: t.id },
       data: {
         name: input.name,
+        currency: input.currency,
         status: input.status,
         drawMode: input.drawMode,
         buyInMinor: input.buyInMinor,

@@ -46,6 +46,14 @@ export default async function HomePage() {
             <FeaturePill icon="📺" text="Live match centre" />
             <FeaturePill icon="🏆" text="Auto prize splits" />
           </div>
+          <div className="mt-5">
+            <Link
+              href="/info"
+              className="inline-flex items-center gap-2 rounded-lg bg-lime-500/10 px-3.5 py-2 text-sm font-medium text-lime-400 ring-1 ring-lime-500/30 hover:bg-lime-500/20 transition"
+            >
+              See how it works →
+            </Link>
+          </div>
         </div>
       </section>
 

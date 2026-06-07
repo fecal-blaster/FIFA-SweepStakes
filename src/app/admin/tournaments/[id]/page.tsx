@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { Card, Button, StatusBadge } from "@/components/ui";
 import { formatMoney } from "@/lib/money";
 import { AdminTournamentControls } from "@/components/admin-tournament-controls";
+import { EditTournamentForm } from "@/components/edit-tournament-form";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,19 @@ export default async function AdminTournamentPage({ params }: { params: { id: st
           competitionCode: t.competitionCode
         }}
         hasActiveDraw={!!active}
+      />
+
+      <EditTournamentForm
+        tournament={{
+          id: t.id,
+          name: t.name,
+          currency: t.currency,
+          buyInMinor: t.buyInMinor,
+          competitionCode: t.competitionCode,
+          drawMode: t.drawMode,
+          registrationDeadline: t.registrationDeadline?.toISOString() ?? null,
+          drawAt: t.drawAt?.toISOString() ?? null
+        }}
       />
 
       <section className="grid lg:grid-cols-2 gap-4">
