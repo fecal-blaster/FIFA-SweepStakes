@@ -6,8 +6,7 @@ import { getSiteSettings } from "@/lib/settings";
 
 export const metadata = {
   title: "How it works — FIFA Sweepstakes",
-  description:
-    "How the draw works, what gets you points, and why no-one can rig it."
+  description: "How teams are drawn, how points work, how to check the draw."
 };
 
 export const dynamic = "force-dynamic";
@@ -16,9 +15,9 @@ export default async function InfoPage() {
   const r = DEFAULT_SCORING;
   const settings = await getSiteSettings();
   return (
-    <div className="space-y-10">
+    <div className="space-y-8 sm:space-y-10">
       {/* HERO */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/8 bg-ink-900/60 p-8 sm:p-10">
+      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/8 bg-ink-900/60 p-6 sm:p-10">
         <div
           className="absolute inset-0 opacity-40 pointer-events-none"
           style={{
@@ -33,162 +32,137 @@ export default async function InfoPage() {
           <h1 className="display text-3xl sm:text-4xl text-white leading-tight">
             {settings.infoTitle}
           </h1>
-          <p className="mt-3 text-white/70 max-w-xl">
+          <p className="mt-3 text-sm sm:text-base text-white/70 max-w-xl">
             {settings.infoDescription}
           </p>
         </div>
       </section>
 
-      {/* RANKINGS — INPUT */}
+      {/* TEAM STRENGTH */}
       <section>
-        <SectionHeader eyebrow="Source of truth" title="Every team has a FIFA ranking" />
+        <SectionHeader eyebrow="Team strength" title="Where the rankings come from" />
         <Card>
-          <div className="space-y-3 text-sm text-white/75 leading-relaxed">
+          <div className="space-y-3 text-sm text-white/80 leading-relaxed">
             <p>
-              The draw doesn't care about gut feel. Each team carries an actual
-              <span className="text-lime-400"> FIFA Men's World Ranking score</span>{" "}
-              — Argentina around 1886, France around 1854, England around 1819,
-              all the way down. Tournament admins can pre-load the current
-              list with one click and tweak any number that doesn't match
-              their view.
+              Every team has a FIFA world ranking — the same one you'll find
+              on FIFA's website. Argentina sit around 1872 points, England 1820,
+              and so on down to the minnows. Those numbers are what the draw
+              uses to keep things even.
             </p>
             <p>
-              Those numbers feed the strength balancer directly, so a player
-              holding 3 strong teams won't quietly outweigh a player holding
-              5 weaker ones — they'll both end up with the same combined
-              pool strength, plus or minus a sliver.
+              You can load the current rankings with one button. If you think
+              a team deserves more or less, you can edit it. Up to you.
             </p>
           </div>
         </Card>
       </section>
 
-      {/* FAIRNESS — ALGORITHM */}
+      {/* THE DRAW */}
       <section className="grid lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
-          <SectionHeader
-            eyebrow="Strength-balanced allocation"
-            title="How the balanced draw works"
-          />
-          <div className="space-y-4 text-sm text-white/75 leading-relaxed">
-            <Eli5 simple="Each participant gets a fair mix of strong and weak teams. Their combined ranking ends up roughly equal across the room.">
+          <SectionHeader eyebrow="The draw" title="How teams get handed out" />
+          <div className="space-y-5 text-sm text-white/80 leading-relaxed">
+            <Eli5 simple="Everyone gets a mix of good and bad teams. Nobody walks off with all the favourites.">
               <p>
-                A pure random draw can hand one participant Argentina, France,
-                Brazil, and England while another gets Costa Rica, Iran,
-                Tunisia, and Saudi Arabia. The balanced mode prevents that.
+                Without any logic, one person could end up with Argentina,
+                France, Brazil, and England while their mate gets stuck with
+                Costa Rica, Iran, Tunisia, and Saudi Arabia. Not exactly fair.
               </p>
-              <p>The draw runs in two passes.</p>
-            </Eli5>
-
-            <Eli5 simple="Round one: deal every team once. Always to whoever has the fewest so far.">
-              <p className="text-white font-medium">Pass 1 — deal every team once.</p>
               <p>
-                Teams get sorted into four pots (top 25% by ranking → Tier 1,
-                etc.). The system deals one team at a time. When more than one
-                participant could take a team, it narrows the field through
-                these tie-breakers, in order:
-              </p>
-              <ol className="list-decimal pl-5 space-y-1 text-white/70">
-                <li>Fewest teams overall</li>
-                <li>Fewest teams from this pot</li>
-                <li>
-                  Fewest of your existing teams that this one would play in the
-                  group stage <span className="text-white/45">(reduces self-clashes)</span>
-                </li>
-                <li>
-                  Furthest below the fair pool-strength share{" "}
-                  <span className="text-white/45">(keeps combined rankings flat)</span>
-                </li>
-              </ol>
-              <p>
-                If multiple candidates are still tied, the cryptographic PRNG
-                picks between them.
+                So the draw does two things. First it makes sure everyone ends
+                up with the same number of teams. Then it spreads the strong
+                ones around so no single person has a stacked pool.
               </p>
             </Eli5>
 
-            <Eli5 simple="Round two: not enough teams to go round evenly? Two people share one. We try to make sure nobody has to share twice.">
-              <p className="text-white font-medium">Pass 2 — top up to equal counts.</p>
+            <Eli5 simple="Every team gets handed out once. Whoever has the fewest teams gets the next one.">
+              <p className="text-white font-medium">Step 1: hand out every team</p>
               <p>
-                When 48 teams don't divide evenly across, say, 11 players, some
-                teams have to be{" "}
-                <span className="text-white">shared</span> so everyone ends up
-                holding the same number. Both owners earn the team's points
-                equally. The algorithm picks each duplicate's source from a
-                player who hasn't shared a team yet — so the sharing burden
-                spreads across the room instead of doubling up on the same
-                person.
+                The teams are split into four pots — top quarter, second
+                quarter, etc. — and then dealt one at a time. Each team goes
+                to whoever:
+              </p>
+              <ul className="list-disc pl-5 space-y-1 text-white/70">
+                <li>has the fewest teams so far</li>
+                <li>has the fewest from this pot</li>
+                <li>doesn't already own a team they'd be playing</li>
+                <li>is furthest behind on combined strength</li>
+              </ul>
+              <p>
+                If more than one person ticks every box, the dice rolls and
+                picks at random.
+              </p>
+            </Eli5>
+
+            <Eli5 simple="48 teams don't split evenly into 11 people. So a few teams have two owners. We try to spread that around fairly.">
+              <p className="text-white font-medium">Step 2: deal with the leftovers</p>
+              <p>
+                48 teams across 11 players doesn't divide cleanly. So a handful
+                of teams end up with <strong className="text-white">two
+                owners</strong>. Both people earn the team's points equally —
+                if Brazil wins, you both pick up the points.
               </p>
               <p>
-                When the maths force someone to end up with two shared teams
-                (true minimum given the player count), it picks the people for
-                that role at random.
+                The draw tries hard to spread the sharing around. Most people
+                end up with one shared team and that's it. Nobody gets stuck
+                with two unless the maths leaves no choice.
               </p>
             </Eli5>
           </div>
         </Card>
 
         <Card>
-          <SectionHeader eyebrow="Or skip the maths" title="Pure random mode" />
-          <Eli5 simple="No strength balancing or clash avoidance — pure random shuffle.">
-            <p className="text-sm text-white/75 leading-relaxed">
-              All teams in one pool, shuffled with a cryptographic PRNG, dealt
-              round-robin. Still uses duplicates to even out counts and still
-              caps the shared-team load, but does not balance strength or
-              avoid clashes.
+          <SectionHeader eyebrow="Pure random mode" title="If you'd rather not bother" />
+          <Eli5 simple="Names in a hat. Pure luck. Whatever happens, happens.">
+            <p className="text-sm text-white/80 leading-relaxed">
+              Pure random skips all the balancing. Teams get shuffled and
+              dealt one at a time, end of story. Quick and chaotic if that's
+              what you're after — but you might get screwed.
             </p>
-            <p className="mt-3 text-sm text-white/75 leading-relaxed">
-              The mode is recorded in the draw's audit trail so participants
-              always know which one ran.
+            <p className="mt-3 text-sm text-white/80 leading-relaxed">
+              Whichever mode runs is saved with the draw so everyone can see
+              what they signed up for.
             </p>
           </Eli5>
         </Card>
       </section>
 
-      {/* DUPLICATES EXAMPLE */}
+      {/* WORKED EXAMPLE */}
       <section>
-        <SectionHeader eyebrow="Worked example" title="48 teams, 11 players" />
+        <SectionHeader eyebrow="The numbers" title="What 48 teams across 11 people looks like" />
         <Card>
           <div className="grid sm:grid-cols-3 gap-4 text-sm">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-white/40 mb-1">
-                Target per player
-              </p>
-              <p className="scoreboard-num text-3xl text-lime-400">5</p>
-              <p className="text-white/60 mt-1">
-                ⌈48 ÷ 11⌉ — everyone holds the same count.
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-white/40 mb-1">
-                Duplicates needed
-              </p>
-              <p className="scoreboard-num text-3xl text-cyan-400">7</p>
-              <p className="text-white/60 mt-1">
-                11 × 5 − 48 = 7 teams get a second owner.
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-white/40 mb-1">
-                Shared-team load
-              </p>
-              <p className="scoreboard-num text-3xl text-gold-400">≤ 2</p>
-              <p className="text-white/60 mt-1">
-                Most players end up with one shared team; at most a couple
-                with two when maths force it.
-              </p>
-            </div>
+            <Stat
+              label="Teams each"
+              value="5"
+              tone="lime"
+              hint="48 divided by 11, rounded up. Same for everyone."
+            />
+            <Stat
+              label="Teams shared"
+              value="7"
+              tone="cyan"
+              hint="11 × 5 = 55. Minus 48 actual teams = 7 with two owners."
+            />
+            <Stat
+              label="Shared per person"
+              value="usually 1"
+              tone="gold"
+              hint="Most people end up with one. A couple get two when the maths forces it."
+            />
           </div>
         </Card>
       </section>
 
       {/* SCORING */}
       <section>
-        <SectionHeader eyebrow="Points" title="Default scoring system" />
+        <SectionHeader eyebrow="Points" title="How you score" />
         <Card>
-          <p className="text-sm text-white/70 mb-5">
-            Points are awarded automatically as matches finish. Group-stage
-            results and knockout progression both count — picking up a team
-            that quietly survives to the quarter-finals can win the whole
-            thing. Admins can override any of these per tournament.
+          <p className="text-sm text-white/80 mb-5 leading-relaxed">
+            Points get added automatically as matches finish. Every group win
+            counts, every round your teams reach counts, and winning the
+            tournament is a big bonus. Picking up a team that quietly survives
+            into the quarter-finals can win you the whole pool.
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
             <ScoringTable
@@ -197,7 +171,7 @@ export default async function InfoPage() {
                 ["Win (group)", `+${r.win}`],
                 ["Draw (group)", `+${r.draw}`],
                 ["Loss (group)", r.loss === 0 ? "0" : `+${r.loss}`],
-                ["Win (knockout)", `+${r.win}`]
+                ["Knockout win", `+${r.win}`]
               ]}
             />
             <ScoringTable
@@ -212,44 +186,43 @@ export default async function InfoPage() {
               ]}
             />
           </div>
-          <p className="mt-5 text-xs text-white/45">
-            Points stack — a team that wins the final picks up the W points,
-            the qualify-for-final points, and the champion bonus.
+          <p className="mt-5 text-xs text-white/55 leading-relaxed">
+            Points stack. A team that wins the final picks up the win points,
+            the qualify-for-final points, and the champion bonus all together.
           </p>
         </Card>
       </section>
 
       {/* VERIFICATION */}
       <section>
-        <SectionHeader eyebrow="Nobody can fiddle the draw" title="Yes, you can check yourself" />
+        <SectionHeader eyebrow="Checking the draw" title="Don't take my word for it" />
         <Card>
-          <Eli5 simple="Computer rolled some dice. Anyone can re-roll with the same secret number and check we got the same answer. No fiddling.">
-            <p className="text-sm text-white/70 leading-relaxed">
-              Every draw gets a public seed (e.g.{" "}
-              <code className="text-white">fifa2026-9a7c4d</code>) plus a
-              SHA-256 hash of the whole result. The hash covers the
-              participant list, the team list <em className="not-italic">with
-              their ranking points</em>, the group-stage fixture list, the
-              seed, and the final allocations. Change a single number and the
-              hash wouldn't match.
-            </p>
-            <p className="text-sm text-white/70 leading-relaxed mt-3">
-              Click <em>Verify draw</em> on any draw page and the server
-              re-runs the whole algorithm from the seed. If a single team got
-              shuffled around after the fact, the recomputed hash wouldn't
-              match the stored one and you'd see it instantly.
-            </p>
-            <p className="text-sm text-white/70 leading-relaxed mt-3">
-              Redraws are allowed (someone forgot to pay, the team list was
-              wrong) but they get logged with a reason and the old draw stays
-              visible forever. The whole history is on the public draw page
-              so nobody has to take anyone's word for it.
-            </p>
+          <Eli5 simple="The computer rolls some dice. The secret number is public so anyone can roll the same dice and check we got the same answer.">
+            <div className="space-y-3 text-sm text-white/80 leading-relaxed">
+              <p>
+                Every draw publishes a secret number (a "seed") and a
+                fingerprint of the result. The fingerprint covers everything
+                that went in: the players, the teams, the rankings, the
+                fixtures, and the final allocations. Change anything after the
+                fact and the fingerprint won't match.
+              </p>
+              <p>
+                There's a <em>Verify draw</em> button on the draw page. Click
+                it and the server re-runs the whole thing from the seed. If
+                someone tried to swap a team afterwards, the fingerprints
+                wouldn't line up and you'd see it.
+              </p>
+              <p>
+                If a redraw needs to happen — someone forgot to pay, the team
+                list was wrong — it gets logged with a reason and the old
+                draw stays on record. Nothing gets swept under the rug.
+              </p>
+            </div>
           </Eli5>
         </Card>
       </section>
 
-      <div className="flex flex-wrap items-center gap-3 pt-2">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2">
         <Link
           href="/"
           className="inline-flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-white ring-1 ring-white/10 hover:bg-white/10 transition"
@@ -262,7 +235,7 @@ export default async function InfoPage() {
           rel="noreferrer noopener"
           className="inline-flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-white/70 ring-1 ring-white/10 hover:text-white hover:bg-white/10 transition"
         >
-          Source code on GitHub ↗
+          Source on GitHub ↗
         </a>
       </div>
     </div>
@@ -281,6 +254,34 @@ function ScoringTable({ title, rows }: { title: string; rows: [string, string][]
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  hint,
+  tone = "default"
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "default" | "lime" | "cyan" | "gold";
+}) {
+  const colour =
+    tone === "lime"
+      ? "text-lime-400"
+      : tone === "cyan"
+        ? "text-cyan-400"
+        : tone === "gold"
+          ? "text-gold-400"
+          : "text-white";
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-[0.25em] text-white/40 mb-1">{label}</p>
+      <p className={`scoreboard-num text-3xl ${colour}`}>{value}</p>
+      {hint && <p className="text-white/55 text-xs mt-1.5 leading-relaxed">{hint}</p>}
     </div>
   );
 }

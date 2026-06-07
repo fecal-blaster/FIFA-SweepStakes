@@ -31,7 +31,7 @@ export default async function TournamentPage({ params }: { params: { slug: strin
   return (
     <div className="space-y-8">
       {/* HERO */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/8 bg-gradient-to-br from-pitch-900/80 via-ink-900 to-ink-950 p-8">
+      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/8 bg-gradient-to-br from-pitch-900/80 via-ink-900 to-ink-950 p-5 sm:p-8">
         <div className="absolute inset-0 opacity-50 pointer-events-none"
           style={{
             backgroundImage:
@@ -46,7 +46,7 @@ export default async function TournamentPage({ params }: { params: { slug: strin
                 {tournament.competitionCode}
               </span>
             </div>
-            <h1 className="display text-5xl sm:text-6xl text-white leading-none">
+            <h1 className="display text-3xl sm:text-5xl lg:text-6xl text-white leading-tight break-words">
               {tournament.name}
             </h1>
             <div className="flex flex-wrap items-center gap-2 pt-2">

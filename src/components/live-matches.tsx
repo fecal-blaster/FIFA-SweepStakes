@@ -45,7 +45,7 @@ export function LiveMatches({
     );
   }
   return (
-    <div className="grid sm:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
       {matches.map((m) => (
         <MatchCard key={m.id} match={m} size={size} />
       ))}

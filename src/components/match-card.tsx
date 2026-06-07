@@ -59,7 +59,8 @@ export function MatchCard({
   }, [match.status]);
   const clock = matchClock(match.status, new Date(match.kickoff), new Date(Date.now() + tick * 0));
 
-  const scoreSize = size === "lg" ? "text-5xl" : size === "sm" ? "text-2xl" : "text-3xl";
+  const scoreSize =
+    size === "lg" ? "text-4xl sm:text-5xl" : size === "sm" ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl";
   const isLive = clock.kind === "live";
   const isFinal = clock.kind === "finished";
   const sameOwner =
@@ -73,10 +74,10 @@ export function MatchCard({
         isLive ? "border-live-500/40 shadow-livepulse" : "border-white/5 hover:border-white/10"
       )}
     >
-      <div className="flex items-center justify-between px-3 pt-2.5">
-        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-white/45">
-          <span>{match.stage.replace(/_/g, " ")}</span>
-          {match.groupName && <span>· Group {match.groupName}</span>}
+      <div className="flex items-center justify-between gap-2 px-3 pt-2.5">
+        <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] uppercase tracking-[0.18em] sm:tracking-[0.2em] text-white/45 min-w-0 truncate">
+          <span className="truncate">{match.stage.replace(/_/g, " ")}</span>
+          {match.groupName && <span className="hidden xs:inline">· Group {match.groupName}</span>}
         </div>
         <ClockBadge clock={clock} />
       </div>
@@ -137,12 +138,12 @@ function Row({
   status: string;
 }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 sm:gap-3">
       <Flag code={code} size="lg" />
       <div className="flex-1 min-w-0">
         <div
           className={cn(
-            "truncate font-medium leading-tight",
+            "truncate font-medium leading-tight text-sm sm:text-base",
             dim ? "text-white/40" : highlight ? "text-lime-400" : "text-white"
           )}
         >
@@ -150,7 +151,7 @@ function Row({
         </div>
         <div
           className={cn(
-            "text-[10px] uppercase tracking-[0.18em] leading-tight truncate mt-0.5",
+            "text-[9px] sm:text-[10px] uppercase tracking-[0.16em] sm:tracking-[0.18em] leading-tight truncate mt-0.5",
             owner ? (dim ? "text-white/30" : "text-cyan-400/85") : "text-white/35"
           )}
         >

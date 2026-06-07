@@ -22,7 +22,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-10">
       {/* HERO */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/8 bg-ink-900/60 p-10">
+      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/8 bg-ink-900/60 p-6 sm:p-10">
         {settings.backdropDataUrl ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
@@ -44,10 +44,10 @@ export default async function HomePage() {
           <p className="text-[10px] uppercase tracking-[0.4em] text-white/55 mb-3">
             {settings.homeEyebrow}
           </p>
-          <h1 className="display text-4xl sm:text-5xl text-white leading-tight">
+          <h1 className="display text-3xl sm:text-5xl text-white leading-tight break-words">
             {settings.homeTitle}
           </h1>
-          <p className="mt-4 text-base text-white/70 max-w-xl">
+          <p className="mt-3 sm:mt-4 text-sm sm:text-base text-white/70 max-w-xl">
             {settings.homeDescription}
           </p>
           {pills.length > 0 && (

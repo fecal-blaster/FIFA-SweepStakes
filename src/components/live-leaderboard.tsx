@@ -83,11 +83,11 @@ export function LiveLeaderboard({
             <button
               type="button"
               onClick={() => toggle(r.participantId)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-left"
+              className="w-full flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 text-left"
             >
               <span
                 className={cn(
-                  "w-8 h-8 inline-flex items-center justify-center rounded-md text-sm font-bold scoreboard-num shrink-0",
+                  "w-7 h-7 sm:w-8 sm:h-8 inline-flex items-center justify-center rounded-md text-xs sm:text-sm font-bold scoreboard-num shrink-0",
                   r.rank === 1 && "bg-gold-500 text-ink-950",
                   r.rank === 2 && "bg-silver-400 text-ink-950",
                   r.rank === 3 && "bg-bronze-400 text-ink-950",
@@ -136,19 +136,19 @@ export function LiveLeaderboard({
                 )}
               </div>
               <div className="text-right shrink-0">
-                <div className="scoreboard-num text-2xl text-white leading-none">
+                <div className="scoreboard-num text-xl sm:text-2xl text-white leading-none">
                   {r.points}
                 </div>
-                <div className="text-[10px] uppercase tracking-wider text-white/40 mt-0.5">
-                  points
+                <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/40 mt-0.5">
+                  pts
                 </div>
-                <div className="text-[11px] text-lime-400 mt-1 tabular">
+                <div className="text-[10px] sm:text-[11px] text-lime-400 mt-1 tabular">
                   {formatMoney(r.projectedPrizeMinor, board.currency)}
                 </div>
               </div>
               <span
                 className={cn(
-                  "ml-1 text-white/40 text-sm transition-transform shrink-0",
+                  "ml-0 sm:ml-1 text-white/40 text-sm transition-transform shrink-0 hidden xs:inline",
                   isOpen && "rotate-90"
                 )}
                 aria-hidden
