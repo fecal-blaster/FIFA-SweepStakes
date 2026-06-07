@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button, Card } from "@/components/ui";
+import { formatLongKickoff } from "@/lib/format";
 
 type Allocation = {
   participant: { id: string; name: string };
@@ -95,7 +96,7 @@ export function DrawReplay({
             <div className="text-xs text-pitch-700/70 uppercase tracking-widest">Seed</div>
             <code className="text-accent-electric tabular text-lg">{draw.seed}</code>
             <div className="text-xs text-pitch-700/70">
-              {draw.mode} · {new Date(draw.createdAt).toLocaleString()}
+              {draw.mode} · {formatLongKickoff(draw.createdAt)}
             </div>
           </div>
           <div className="space-y-1">

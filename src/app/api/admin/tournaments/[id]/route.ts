@@ -1,8 +1,22 @@
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { handleError, notFound, ok, parseJson } from "@/lib/api";
 import { requireAdmin } from "@/lib/session";
 import { audit } from "@/lib/audit";
+
+const ScoringSchema = z
+  .object({
+    win: z.number().int().min(0).max(100),
+    draw: z.number().int().min(0).max(100),
+    loss: z.number().int().min(0).max(100),
+    qualifyR16: z.number().int().min(0).max(200),
+    qualifyQF: z.number().int().min(0).max(200),
+    qualifySF: z.number().int().min(0).max(200),
+    qualifyFinal: z.number().int().min(0).max(200),
+    champion: z.number().int().min(0).max(500)
+  })
+  .nullable();
 
 const PatchSchema = z.object({
   name: z.string().min(1).max(80).optional(),
@@ -12,7 +26,8 @@ const PatchSchema = z.object({
   buyInMinor: z.number().int().min(0).max(1_000_000).optional(),
   registrationDeadline: z.string().datetime().nullable().optional(),
   drawAt: z.string().datetime().nullable().optional(),
-  payoutBps: z.array(z.number().int().min(0).max(10000)).min(1).max(8).optional()
+  payoutBps: z.array(z.number().int().min(0).max(10000)).min(1).max(8).nullable().optional(),
+  scoring: ScoringSchema.optional()
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -32,7 +47,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         registrationDeadline:
           input.registrationDeadline === undefined ? undefined : input.registrationDeadline ? new Date(input.registrationDeadline) : null,
         drawAt: input.drawAt === undefined ? undefined : input.drawAt ? new Date(input.drawAt) : null,
-        payoutBpsJson: input.payoutBps
+        payoutBpsJson:
+          input.payoutBps === undefined ? undefined : (input.payoutBps ?? [5000, 3333, 1667]),
+        scoringJson:
+          input.scoring === undefined
+            ? undefined
+            : input.scoring === null
+              ? Prisma.JsonNull
+              : (input.scoring as Prisma.InputJsonValue)
       }
     });
     await audit({

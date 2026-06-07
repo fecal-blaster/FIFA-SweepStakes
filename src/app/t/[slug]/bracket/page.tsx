@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Card, Flag, SectionHeader } from "@/components/ui";
 import type { MatchStage } from "@prisma/client";
+import { formatShortKickoff } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -76,11 +77,7 @@ export default async function BracketPage({ params }: { params: { slug: string }
                       ? "Full time"
                       : m.status === "IN_PLAY"
                         ? "Live"
-                        : new Date(m.kickoff).toLocaleString(undefined, {
-                            weekday: "short",
-                            hour: "2-digit",
-                            minute: "2-digit"
-                          })}
+                        : formatShortKickoff(m.kickoff)}
                   </div>
                 </div>
               ))}

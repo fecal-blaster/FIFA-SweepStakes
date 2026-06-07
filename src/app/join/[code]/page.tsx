@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui";
 import { JoinForm } from "@/components/join-form";
+import { formatLongKickoff } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export default async function JoinPage({ params }: { params: { code: string } })
         </p>
         {tournament.registrationDeadline && (
           <p className="text-xs text-pitch-700/70 mt-1">
-            Closes {new Date(tournament.registrationDeadline).toLocaleString()}
+            Closes {formatLongKickoff(tournament.registrationDeadline)}
           </p>
         )}
         <div className="mt-4">

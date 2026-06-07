@@ -2,12 +2,30 @@ import { prisma } from "@/lib/db";
 import { DEFAULT_SCORING, type ScoringRules } from "@/lib/scoring";
 import { distributePrizePool } from "@/lib/money";
 
+export type ScoreEventDetail = {
+  kind: string;
+  /** Human-readable label, e.g. "Win vs Brazil" or "Reach Quarter-final". */
+  label: string;
+  points: number;
+  matchId: string | null;
+  at: string; // ISO timestamp
+};
+
+export type TeamBreakdown = {
+  id: string;
+  name: string;
+  code: string | null;
+  flagUrl: string | null;
+  points: number;
+  events: ScoreEventDetail[];
+};
+
 export type LeaderboardRow = {
   rank: number;
   participantId: string;
   name: string;
   paid: boolean;
-  teams: { id: string; name: string; code: string | null; flagUrl: string | null }[];
+  teams: TeamBreakdown[];
   points: number;
   projectedPrizeMinor: number;
 };
@@ -20,6 +38,25 @@ export type LeaderboardSummary = {
   currency: string;
 };
 
+const EVENT_LABELS: Record<string, string> = {
+  WIN: "Win",
+  DRAW: "Draw",
+  LOSS: "Loss",
+  QUALIFY_R16: "Reach Round of 16",
+  QUALIFY_QF: "Reach Quarter-final",
+  QUALIFY_SF: "Reach Semi-final",
+  QUALIFY_FINAL: "Reach the Final",
+  CHAMPION: "Tournament winner"
+};
+
+function eventLabel(kind: string, opponentName: string | null): string {
+  const base = EVENT_LABELS[kind] ?? kind;
+  if ((kind === "WIN" || kind === "DRAW" || kind === "LOSS") && opponentName) {
+    return `${base} vs ${opponentName}`;
+  }
+  return base;
+}
+
 export async function computeLeaderboard(tournamentId: string): Promise<LeaderboardSummary> {
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },
@@ -28,7 +65,26 @@ export async function computeLeaderboard(tournamentId: string): Promise<Leaderbo
         include: {
           allocations: {
             where: { draw: { isActive: true } },
-            include: { team: { include: { scoreEvents: true } } }
+            include: {
+              team: {
+                include: {
+                  scoreEvents: {
+                    include: {
+                      match: {
+                        select: {
+                          id: true,
+                          homeTeamId: true,
+                          awayTeamId: true,
+                          homeTeam: { select: { name: true } },
+                          awayTeam: { select: { name: true } }
+                        }
+                      }
+                    },
+                    orderBy: { createdAt: "asc" }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -36,24 +92,47 @@ export async function computeLeaderboard(tournamentId: string): Promise<Leaderbo
   });
   if (!tournament) throw new Error("Tournament not found");
 
-  const _rules: ScoringRules = (tournament.scoringJson as unknown as ScoringRules) ?? DEFAULT_SCORING;
+  const _rules: ScoringRules =
+    (tournament.scoringJson as unknown as ScoringRules) ?? DEFAULT_SCORING;
   // Rules already baked into ScoreEvent.points at write time — sum is enough.
 
-  const rows: Omit<LeaderboardRow, "rank" | "projectedPrizeMinor">[] = tournament.participants.map((p) => {
-    const teams = p.allocations.map((a) => ({
-      id: a.team.id,
-      name: a.team.name,
-      code: a.team.code,
-      flagUrl: a.team.flagUrl
-    }));
-    const points = p.allocations.reduce(
-      (sum, a) => sum + a.team.scoreEvents.reduce((s, e) => s + e.points, 0),
-      0
-    );
-    return { participantId: p.id, name: p.name, paid: p.paid, teams, points };
-  });
+  const rows: Omit<LeaderboardRow, "rank" | "projectedPrizeMinor">[] = tournament.participants.map(
+    (p) => {
+      const teams: TeamBreakdown[] = p.allocations.map((a) => {
+        const events: ScoreEventDetail[] = a.team.scoreEvents.map((e) => {
+          // Figure out the opponent of the team that scored this event.
+          let opponent: string | null = null;
+          if (e.match) {
+            if (e.match.homeTeamId === a.team.id) {
+              opponent = e.match.awayTeam?.name ?? null;
+            } else if (e.match.awayTeamId === a.team.id) {
+              opponent = e.match.homeTeam?.name ?? null;
+            }
+          }
+          return {
+            kind: e.kind,
+            label: eventLabel(e.kind, opponent),
+            points: e.points,
+            matchId: e.matchId,
+            at: e.createdAt.toISOString()
+          };
+        });
+        const points = events.reduce((s, ev) => s + ev.points, 0);
+        return {
+          id: a.team.id,
+          name: a.team.name,
+          code: a.team.code,
+          flagUrl: a.team.flagUrl,
+          points,
+          events
+        };
+      });
 
-  // Sort by points desc, tiebreak by name for stable display.
+      const points = teams.reduce((sum, t) => sum + t.points, 0);
+      return { participantId: p.id, name: p.name, paid: p.paid, teams, points };
+    }
+  );
+
   rows.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
 
   const paidCount = tournament.participants.filter((p) => p.paid).length;
@@ -61,7 +140,6 @@ export async function computeLeaderboard(tournamentId: string): Promise<Leaderbo
   const payoutBps = (tournament.payoutBpsJson as number[]) ?? [5000, 3333, 1667];
   const prizes = distributePrizePool(prizePoolMinor, payoutBps);
 
-  // Assign 1226-style competition ranks (ties share rank, next slot skips).
   let rank = 0;
   let lastPoints: number | null = null;
   let lastRank = 0;
@@ -70,8 +148,7 @@ export async function computeLeaderboard(tournamentId: string): Promise<Leaderbo
     if (lastPoints !== null && r.points === lastPoints) rank = lastRank;
     lastRank = rank;
     lastPoints = r.points;
-    const prizeIdx = idx; // projected prize follows finishing order, not shared rank
-    const projected = prizes[prizeIdx] ?? 0;
+    const projected = prizes[idx] ?? 0;
     return { ...r, rank, projectedPrizeMinor: projected };
   });
 

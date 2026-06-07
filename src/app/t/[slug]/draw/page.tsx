@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui";
 import { DrawReplay } from "@/components/draw-replay";
+import { formatLongKickoff } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,7 @@ export default async function DrawPage({ params }: { params: { slug: string } })
                 <div>
                   <div className="text-sm text-white tabular">{d.seed}</div>
                   <div className="text-xs text-pitch-700/70">
-                    {d.mode} · superseded {d.supersededAt?.toLocaleString()} ·{" "}
+                    {d.mode} · superseded {d.supersededAt ? formatLongKickoff(d.supersededAt) : ""} ·{" "}
                     {d.redrawReason ?? "no reason recorded"}
                   </div>
                 </div>

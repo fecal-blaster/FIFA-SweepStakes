@@ -5,6 +5,8 @@ import { Card, Button, StatusBadge } from "@/components/ui";
 import { formatMoney } from "@/lib/money";
 import { AdminTournamentControls } from "@/components/admin-tournament-controls";
 import { EditTournamentForm } from "@/components/edit-tournament-form";
+import { ScoringEditor } from "@/components/scoring-editor";
+import type { ScoringRules } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +66,12 @@ export default async function AdminTournamentPage({ params }: { params: { id: st
           registrationDeadline: t.registrationDeadline?.toISOString() ?? null,
           drawAt: t.drawAt?.toISOString() ?? null
         }}
+      />
+
+      <ScoringEditor
+        tournamentId={t.id}
+        initialScoring={(t.scoringJson as unknown as ScoringRules | null) ?? null}
+        initialPayoutBps={(t.payoutBpsJson as number[] | null) ?? null}
       />
 
       <section className="grid lg:grid-cols-2 gap-4">

@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 
 const CURRENCIES = [
+  { code: "NZD", label: "NZ$ NZD — New Zealand Dollar" },
+  { code: "AUD", label: "A$ AUD — Australian Dollar" },
   { code: "GBP", label: "£ GBP — Pound" },
   { code: "USD", label: "$ USD — US Dollar" },
   { code: "EUR", label: "€ EUR — Euro" },
-  { code: "AUD", label: "A$ AUD — Australian Dollar" },
   { code: "CAD", label: "C$ CAD — Canadian Dollar" },
-  { code: "NZD", label: "NZ$ NZD — New Zealand Dollar" },
   { code: "CHF", label: "₣ CHF — Swiss Franc" },
   { code: "JPY", label: "¥ JPY — Japanese Yen" },
   { code: "SEK", label: "kr SEK — Swedish Krona" },
@@ -22,7 +22,7 @@ export function CreateTournamentForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [competitionCode, setCode] = useState(process.env.NEXT_PUBLIC_DEFAULT_COMP ?? "WC");
-  const [currency, setCurrency] = useState("GBP");
+  const [currency, setCurrency] = useState("NZD");
   const [buyIn, setBuyIn] = useState("10");
   const [mode, setMode] = useState<"BALANCED" | "PURE_RANDOM">("BALANCED");
   const [regDeadline, setRegDeadline] = useState("");

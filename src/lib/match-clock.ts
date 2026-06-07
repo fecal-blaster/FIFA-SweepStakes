@@ -2,6 +2,8 @@
 // Real providers expose this directly; football-data.org does not on snapshots,
 // so we fall back to elapsed wall time.
 
+import { formatShortKickoff } from "@/lib/format";
+
 export type MatchClock =
   | { kind: "scheduled"; label: string }
   | { kind: "live"; minute: number; label: string }
@@ -24,8 +26,5 @@ export function matchClock(status: string, kickoff: Date, now: Date = new Date()
     minute = Math.max(1, minute);
     return { kind: "live", minute, label: `${minute}'` };
   }
-  return {
-    kind: "scheduled",
-    label: new Date(kickoff).toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" })
-  };
+  return { kind: "scheduled", label: formatShortKickoff(kickoff) };
 }

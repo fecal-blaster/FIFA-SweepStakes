@@ -1,9 +1,9 @@
 // All money flows through minor units (pence/cents) as integers — no float drift.
 
-export function formatMoney(minor: number, currency = "GBP"): string {
+export function formatMoney(minor: number, currency = "NZD"): string {
   const value = minor / 100;
   try {
-    return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(value);
+    return new Intl.NumberFormat("en-NZ", { style: "currency", currency }).format(value);
   } catch {
     return `${currency} ${value.toFixed(2)}`;
   }
