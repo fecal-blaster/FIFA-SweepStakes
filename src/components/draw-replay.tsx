@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, Flag } from "@/components/ui";
 import { formatLongKickoff } from "@/lib/format";
 
 type Allocation = {
@@ -171,9 +171,10 @@ export function DrawReplay({
                   {p.teams.map((t) => (
                     <span
                       key={t.id}
-                      className="text-xs bg-pitch-800/70 ring-1 ring-pitch-700/40 rounded px-2 py-0.5"
+                      className="inline-flex items-center gap-1 text-xs bg-pitch-800/70 ring-1 ring-pitch-700/40 rounded px-2 py-0.5"
                     >
-                      {t.code ?? t.name}
+                      <Flag code={t.code} size="md" />
+                      <span>{t.name}</span>
                     </span>
                   ))}
                 </div>

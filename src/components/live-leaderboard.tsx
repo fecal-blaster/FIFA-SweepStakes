@@ -125,8 +125,8 @@ export function LiveLeaderboard({
                             : "bg-white/3 ring-1 ring-white/8 text-white/55"
                         )}
                       >
-                        <Flag code={t.code} size="sm" />
-                        <span>{t.code ?? t.name}</span>
+                        <Flag code={t.code} size="md" />
+                        <span>{t.name}</span>
                         {t.points > 0 && (
                           <span className="ml-0.5 scoreboard-num">+{t.points}</span>
                         )}
