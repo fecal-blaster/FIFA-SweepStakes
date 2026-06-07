@@ -19,11 +19,11 @@ export function PrizeCounter({
   const symbol = currencySymbol(currency);
   return (
     <div className="flex items-baseline gap-1">
-      <span className="display text-3xl text-white/70">{symbol}</span>
+      <span className="display text-3xl text-white/55">{symbol}</span>
       <AnimatedNumber
         value={poolMinor / 100}
         format={(n) => numberFmt.format(n)}
-        className="scoreboard-num text-5xl sm:text-6xl text-lime-400 drop-shadow-[0_0_18px_rgba(126,255,50,0.3)]"
+        className="scoreboard-num text-5xl sm:text-6xl text-white"
       />
     </div>
   );

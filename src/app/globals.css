@@ -11,9 +11,8 @@ html,
 body {
   background: #02060b;
   background-image:
-    radial-gradient(1200px 600px at 15% -10%, rgba(126, 255, 50, 0.12), transparent 60%),
-    radial-gradient(900px 500px at 85% 0%, rgba(94, 240, 255, 0.07), transparent 60%),
-    linear-gradient(180deg, #03070d 0%, #01040a 100%);
+    radial-gradient(1100px 500px at 50% -20%, rgba(255, 255, 255, 0.035), transparent 70%),
+    linear-gradient(180deg, #060a13 0%, #02060b 100%);
   background-attachment: fixed;
   min-height: 100%;
   color: #e9eef5;
@@ -71,12 +70,10 @@ body::before {
 
 .live-dot {
   display: inline-block;
-  width: 0.5rem;
-  height: 0.5rem;
+  width: 0.4rem;
+  height: 0.4rem;
   border-radius: 999px;
   background: #ff2747;
-  box-shadow: 0 0 0 0 rgba(255, 39, 71, 0.55);
-  animation: live-pulse 1.5s ease-out infinite;
 }
 
 .divider {

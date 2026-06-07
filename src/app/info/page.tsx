@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, SectionHeader } from "@/components/ui";
+import { Eli5 } from "@/components/eli5";
 import { DEFAULT_SCORING } from "@/lib/scoring";
 
 export const metadata = {
@@ -13,24 +14,22 @@ export default function InfoPage() {
   return (
     <div className="space-y-10">
       {/* HERO */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/8 bg-gradient-to-br from-pitch-900/60 via-ink-900/80 to-ink-950 p-8 sm:p-10">
+      <section className="relative overflow-hidden rounded-3xl border border-white/8 bg-ink-900/60 p-8 sm:p-10">
         <div
-          className="absolute inset-0 opacity-60 pointer-events-none"
+          className="absolute inset-0 opacity-40 pointer-events-none"
           style={{
             backgroundImage:
-              "radial-gradient(700px 350px at 90% 10%, rgba(126,255,50,0.25), transparent 60%), radial-gradient(600px 300px at 0% 100%, rgba(94,240,255,0.12), transparent 60%)"
+              "radial-gradient(700px 350px at 90% 10%, rgba(255,255,255,0.04), transparent 60%)"
           }}
         />
         <div className="relative z-10 max-w-3xl">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-lime-400 mb-3">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-white/55 mb-3">
             ◇ The rules
           </p>
           <h1 className="display text-4xl sm:text-5xl text-white leading-[0.95]">
             How this thing
             <br />
-            <span className="bg-gradient-to-r from-lime-400 via-cyan-400 to-gold-400 bg-clip-text text-transparent">
-              actually works.
-            </span>
+            <span className="text-white/70">actually works.</span>
           </h1>
           <p className="mt-4 text-white/70 max-w-xl">
             How the teams get split up, what earns you points, and how to check
@@ -69,68 +68,78 @@ export default function InfoPage() {
             eyebrow="No-one gets the bin teams"
             title="The balanced draw in plain English"
           />
-          <div className="space-y-3 text-sm text-white/75 leading-relaxed">
-            <p>
-              Without the balancer, Dave pulls Argentina, France, Brazil, and
-              England while you end up with Costa Rica, Iran, Tunisia, and
-              Saudi Arabia. That's the joke that gets old by the second match.
-            </p>
-            <p>The draw runs in two passes.</p>
-            <p className="text-white font-medium">Pass 1 — deal every team once.</p>
-            <p>
-              Teams get sorted into four pots (top 25% by ranking → Tier 1,
-              etc.). The system deals one team at a time. When more than one
-              participant could take a team, it narrows the field through
-              these tie-breakers, in order:
-            </p>
-            <ol className="list-decimal pl-5 space-y-1 text-white/70">
-              <li>Fewest teams overall</li>
-              <li>Fewest teams from this pot</li>
-              <li>
-                Fewest of your existing teams that this one would play in the
-                group stage <span className="text-white/45">(reduces self-clashes)</span>
-              </li>
-              <li>
-                Furthest below the fair pool-strength share{" "}
-                <span className="text-white/45">(keeps combined rankings flat)</span>
-              </li>
-            </ol>
-            <p>
-              If multiple candidates are still tied, the cryptographic PRNG
-              picks between them.
-            </p>
-            <p className="text-white font-medium">Pass 2 — top up to equal counts.</p>
-            <p>
-              When 48 teams don't divide evenly across, say, 11 players, some
-              teams have to be{" "}
-              <span className="text-lime-400">shared</span> so everyone ends
-              up holding the same number. Both owners earn the team's points
-              equally. The algorithm picks each duplicate's source from a
-              player who hasn't shared a team yet — so the sharing burden
-              spreads across the room instead of doubling up on the same
-              person.
-            </p>
-            <p>
-              When the maths force someone to end up with two shared teams
-              (true minimum given the player count), it picks the people for
-              that role at random.
-            </p>
+          <div className="space-y-4 text-sm text-white/75 leading-relaxed">
+            <Eli5 simple="Without this, Dave hoards Argentina, Brazil, France. With this, everyone gets a fair mix of good and bad teams.">
+              <p>
+                Without the balancer, Dave pulls Argentina, France, Brazil, and
+                England while you end up with Costa Rica, Iran, Tunisia, and
+                Saudi Arabia. That's the joke that gets old by the second match.
+              </p>
+              <p>The draw runs in two passes.</p>
+            </Eli5>
+
+            <Eli5 simple="Round one: deal every team once. Always to whoever has the fewest so far.">
+              <p className="text-white font-medium">Pass 1 — deal every team once.</p>
+              <p>
+                Teams get sorted into four pots (top 25% by ranking → Tier 1,
+                etc.). The system deals one team at a time. When more than one
+                participant could take a team, it narrows the field through
+                these tie-breakers, in order:
+              </p>
+              <ol className="list-decimal pl-5 space-y-1 text-white/70">
+                <li>Fewest teams overall</li>
+                <li>Fewest teams from this pot</li>
+                <li>
+                  Fewest of your existing teams that this one would play in the
+                  group stage <span className="text-white/45">(reduces self-clashes)</span>
+                </li>
+                <li>
+                  Furthest below the fair pool-strength share{" "}
+                  <span className="text-white/45">(keeps combined rankings flat)</span>
+                </li>
+              </ol>
+              <p>
+                If multiple candidates are still tied, the cryptographic PRNG
+                picks between them.
+              </p>
+            </Eli5>
+
+            <Eli5 simple="Round two: not enough teams to go round evenly? Two people share one. We try to make sure nobody has to share twice.">
+              <p className="text-white font-medium">Pass 2 — top up to equal counts.</p>
+              <p>
+                When 48 teams don't divide evenly across, say, 11 players, some
+                teams have to be{" "}
+                <span className="text-white">shared</span> so everyone ends up
+                holding the same number. Both owners earn the team's points
+                equally. The algorithm picks each duplicate's source from a
+                player who hasn't shared a team yet — so the sharing burden
+                spreads across the room instead of doubling up on the same
+                person.
+              </p>
+              <p>
+                When the maths force someone to end up with two shared teams
+                (true minimum given the player count), it picks the people for
+                that role at random.
+              </p>
+            </Eli5>
           </div>
         </Card>
 
-        <Card glow>
+        <Card>
           <SectionHeader eyebrow="Or skip the maths" title="Pure random mode" />
-          <p className="text-sm text-white/75 leading-relaxed">
-            One pool, shuffled with a cryptographic PRNG, dealt round-robin.
-            Still uses duplicates to even out counts and still caps the
-            shared-team load — but doesn't try to balance strength or avoid
-            clashes. Quick and unpredictable when variance is the whole point.
-          </p>
-          <p className="mt-3 text-sm text-white/75 leading-relaxed">
-            Admins pick the mode when creating a sweepstake. The choice is
-            recorded in the draw's audit trail so participants always know
-            which one ran.
-          </p>
+          <Eli5 simple="Like pulling names out of a hat. No strategy, just luck.">
+            <p className="text-sm text-white/75 leading-relaxed">
+              One pool, shuffled with a cryptographic PRNG, dealt round-robin.
+              Still uses duplicates to even out counts and still caps the
+              shared-team load — but doesn't try to balance strength or avoid
+              clashes. Quick and unpredictable when variance is the whole point.
+            </p>
+            <p className="mt-3 text-sm text-white/75 leading-relaxed">
+              Admins pick the mode when creating a sweepstake. The choice is
+              recorded in the draw's audit trail so participants always know
+              which one ran.
+            </p>
+          </Eli5>
         </Card>
       </section>
 
@@ -213,27 +222,29 @@ export default function InfoPage() {
       <section>
         <SectionHeader eyebrow="Nobody can fiddle the draw" title="Yes, you can check yourself" />
         <Card>
-          <p className="text-sm text-white/70 leading-relaxed">
-            Every draw gets a public seed (e.g.{" "}
-            <code className="text-lime-400">fifa2026-9a7c4d</code>) plus a
-            SHA-256 hash of the whole result. The hash covers the participant
-            list, the team list <em className="not-italic">with their
-            ranking points</em>, the group-stage fixture list, the seed, and
-            the final allocations. Change a single number and the hash
-            wouldn't match.
-          </p>
-          <p className="text-sm text-white/70 leading-relaxed mt-3">
-            Click <em>Verify draw</em> on any draw page and the server
-            re-runs the whole algorithm from the seed. If a single team got
-            shuffled around after the fact, the recomputed hash wouldn't
-            match the stored one and you'd see it instantly.
-          </p>
-          <p className="text-sm text-white/70 leading-relaxed mt-3">
-            Redraws are allowed (someone forgot to pay, the team list was
-            wrong) but they get logged with a reason and the old draw stays
-            visible forever. The whole history is on the public draw page so
-            nobody has to take anyone's word for it.
-          </p>
+          <Eli5 simple="Computer rolled some dice. Anyone can re-roll with the same secret number and check we got the same answer. No fiddling.">
+            <p className="text-sm text-white/70 leading-relaxed">
+              Every draw gets a public seed (e.g.{" "}
+              <code className="text-white">fifa2026-9a7c4d</code>) plus a
+              SHA-256 hash of the whole result. The hash covers the
+              participant list, the team list <em className="not-italic">with
+              their ranking points</em>, the group-stage fixture list, the
+              seed, and the final allocations. Change a single number and the
+              hash wouldn't match.
+            </p>
+            <p className="text-sm text-white/70 leading-relaxed mt-3">
+              Click <em>Verify draw</em> on any draw page and the server
+              re-runs the whole algorithm from the seed. If a single team got
+              shuffled around after the fact, the recomputed hash wouldn't
+              match the stored one and you'd see it instantly.
+            </p>
+            <p className="text-sm text-white/70 leading-relaxed mt-3">
+              Redraws are allowed (someone forgot to pay, the team list was
+              wrong) but they get logged with a reason and the old draw stays
+              visible forever. The whole history is on the public draw page
+              so nobody has to take anyone's word for it.
+            </p>
+          </Eli5>
         </Card>
       </section>
 

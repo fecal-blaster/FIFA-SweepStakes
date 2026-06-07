@@ -17,24 +17,22 @@ export default async function HomePage() {
   return (
     <div className="space-y-10">
       {/* HERO */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/8 bg-gradient-to-br from-pitch-900/60 via-ink-900/80 to-ink-950 p-10">
+      <section className="relative overflow-hidden rounded-3xl border border-white/8 bg-ink-900/60 p-10">
         <div
-          className="absolute inset-0 opacity-60 pointer-events-none"
+          className="absolute inset-0 opacity-40 pointer-events-none"
           style={{
             backgroundImage:
-              "radial-gradient(700px 350px at 90% 10%, rgba(126,255,50,0.30), transparent 60%), radial-gradient(600px 300px at 0% 100%, rgba(94,240,255,0.12), transparent 60%)"
+              "radial-gradient(700px 350px at 90% 10%, rgba(255,255,255,0.05), transparent 60%)"
           }}
         />
         <div className="relative z-10 max-w-3xl">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-lime-400 mb-3">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-white/55 mb-3">
             ◇ Sweepstake HQ
           </p>
           <h1 className="display text-5xl sm:text-7xl text-white leading-[0.95]">
             FIFA sweepstakes
             <br />
-            <span className="bg-gradient-to-r from-lime-400 via-cyan-400 to-gold-400 bg-clip-text text-transparent">
-              for the lads.
-            </span>
+            <span className="text-white/70">for the lads.</span>
           </h1>
           <p className="mt-5 text-base text-white/70 max-w-xl">
             Bin the spreadsheet, draw the teams, watch the points roll in. Live
