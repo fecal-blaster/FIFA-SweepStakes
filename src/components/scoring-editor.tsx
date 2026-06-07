@@ -17,6 +17,7 @@ const SCORING_FIELDS: { key: keyof ScoringRules; label: string; hint: string }[]
   { key: "win", label: "Match win", hint: "Group OR knockout" },
   { key: "draw", label: "Draw", hint: "Group only" },
   { key: "loss", label: "Loss", hint: "Group or knockout" },
+  { key: "qualifyR32", label: "Reach Round of 32", hint: "Awarded for appearing" },
   { key: "qualifyR16", label: "Reach Round of 16", hint: "Awarded for appearing" },
   { key: "qualifyQF", label: "Reach Quarter-final", hint: "Awarded for appearing" },
   { key: "qualifySF", label: "Reach Semi-final", hint: "Awarded for appearing" },

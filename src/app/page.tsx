@@ -27,28 +27,25 @@ export default async function HomePage() {
         />
         <div className="relative z-10 max-w-3xl">
           <p className="text-[10px] uppercase tracking-[0.4em] text-white/55 mb-3">
-            ◇ Sweepstake HQ
+            FIFA Sweepstakes
           </p>
-          <h1 className="display text-5xl sm:text-7xl text-white leading-[0.95]">
-            FIFA sweepstakes
-            <br />
-            <span className="text-white/70">for the lads.</span>
+          <h1 className="display text-4xl sm:text-5xl text-white leading-tight">
+            Tournament management for FIFA sweepstakes.
           </h1>
-          <p className="mt-5 text-base text-white/70 max-w-xl">
-            Bin the spreadsheet, draw the teams, watch the points roll in. Live
-            scores, an auto-updating leaderboard, and prize splits that work
-            themselves out by full time.
+          <p className="mt-4 text-base text-white/70 max-w-xl">
+            Verifiable team draws, live scoring from the official feed, an
+            auto-updating leaderboard, and configurable prize splits.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
-            <FeaturePill icon="🎲" text="No-one stitches the draw" />
-            <FeaturePill icon="📺" text="Scores update themselves" />
-            <FeaturePill icon="🏆" text="Prize maths sorted" />
-            <FeaturePill icon="🍻" text="Banter-ready leaderboard" />
+            <FeaturePill text="Verifiable draws" />
+            <FeaturePill text="Live scoring" />
+            <FeaturePill text="Configurable prize splits" />
+            <FeaturePill text="Self-hosted" />
           </div>
           <div className="mt-5">
             <Link
               href="/info"
-              className="inline-flex items-center gap-2 rounded-lg bg-lime-500/10 px-3.5 py-2 text-sm font-medium text-lime-400 ring-1 ring-lime-500/30 hover:bg-lime-500/20 transition"
+              className="inline-flex items-center gap-2 rounded-lg bg-white/5 px-3.5 py-2 text-sm font-medium text-white ring-1 ring-white/15 hover:bg-white/10 transition"
             >
               How it works →
             </Link>
@@ -109,10 +106,9 @@ export default async function HomePage() {
   );
 }
 
-function FeaturePill({ icon, text }: { icon: string; text: string }) {
+function FeaturePill({ text }: { text: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-xs text-white/80 ring-1 ring-white/10">
-      <span aria-hidden>{icon}</span>
       <span>{text}</span>
     </span>
   );

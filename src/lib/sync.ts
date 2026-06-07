@@ -13,6 +13,7 @@ export type SyncReport = {
 
 // Maps each knockout match to "if a team appears here, it has qualified for X".
 const QUALIFIED_BY_APPEARING_IN: Partial<Record<MatchStage, MatchStage>> = {
+  ROUND_OF_32: "ROUND_OF_32",
   ROUND_OF_16: "ROUND_OF_16",
   QUARTER_FINAL: "QUARTER_FINAL",
   SEMI_FINAL: "SEMI_FINAL",
@@ -161,6 +162,8 @@ export async function syncTournament(tournamentId: string): Promise<SyncReport> 
 
 function qualifyPointsFor(rules: ScoringRules, stage: MatchStage): number {
   switch (stage) {
+    case "ROUND_OF_32":
+      return rules.qualifyR32;
     case "ROUND_OF_16":
       return rules.qualifyR16;
     case "QUARTER_FINAL":

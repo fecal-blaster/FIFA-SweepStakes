@@ -4,6 +4,7 @@ export type ScoringRules = {
   win: number;
   draw: number;
   loss: number;
+  qualifyR32: number;
   qualifyR16: number;
   qualifyQF: number;
   qualifySF: number;
@@ -15,6 +16,7 @@ export const DEFAULT_SCORING: ScoringRules = {
   win: 3,
   draw: 1,
   loss: 0,
+  qualifyR32: 3,
   qualifyR16: 5,
   qualifyQF: 10,
   qualifySF: 15,
@@ -34,6 +36,8 @@ export function pointsForResult(
 // Returns the qualification award a team receives by *advancing into* a stage.
 export function qualifyPoints(rules: ScoringRules, intoStage: MatchStage): number {
   switch (intoStage) {
+    case "ROUND_OF_32":
+      return rules.qualifyR32;
     case "ROUND_OF_16":
       return rules.qualifyR16;
     case "QUARTER_FINAL":
@@ -49,6 +53,7 @@ export function qualifyPoints(rules: ScoringRules, intoStage: MatchStage): numbe
 
 export const QUALIFY_KIND: Record<MatchStage, string | null> = {
   GROUP: null,
+  ROUND_OF_32: "QUALIFY_R32",
   ROUND_OF_16: "QUALIFY_R16",
   QUARTER_FINAL: "QUALIFY_QF",
   SEMI_FINAL: "QUALIFY_SF",

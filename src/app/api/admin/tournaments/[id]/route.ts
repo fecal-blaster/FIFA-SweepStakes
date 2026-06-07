@@ -10,6 +10,7 @@ const ScoringSchema = z
     win: z.number().int().min(0).max(100),
     draw: z.number().int().min(0).max(100),
     loss: z.number().int().min(0).max(100),
+    qualifyR32: z.number().int().min(0).max(200),
     qualifyR16: z.number().int().min(0).max(200),
     qualifyQF: z.number().int().min(0).max(200),
     qualifySF: z.number().int().min(0).max(200),

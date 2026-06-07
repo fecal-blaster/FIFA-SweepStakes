@@ -24,16 +24,14 @@ export default function InfoPage() {
         />
         <div className="relative z-10 max-w-3xl">
           <p className="text-[10px] uppercase tracking-[0.4em] text-white/55 mb-3">
-            ◇ The rules
+            How it works
           </p>
-          <h1 className="display text-4xl sm:text-5xl text-white leading-[0.95]">
-            How this thing
-            <br />
-            <span className="text-white/70">actually works.</span>
+          <h1 className="display text-3xl sm:text-4xl text-white leading-tight">
+            Team allocation, scoring, and verification.
           </h1>
-          <p className="mt-4 text-white/70 max-w-xl">
-            How the teams get split up, what earns you points, and how to check
-            no-one fiddled the draw. Skim it before the first kickoff.
+          <p className="mt-3 text-white/70 max-w-xl">
+            How teams are distributed across participants, how points are
+            awarded, and how anyone can independently verify a draw.
           </p>
         </div>
       </section>
@@ -65,15 +63,15 @@ export default function InfoPage() {
       <section className="grid lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
           <SectionHeader
-            eyebrow="No-one gets the bin teams"
-            title="The balanced draw in plain English"
+            eyebrow="Strength-balanced allocation"
+            title="How the balanced draw works"
           />
           <div className="space-y-4 text-sm text-white/75 leading-relaxed">
-            <Eli5 simple="Without this, Dave hoards Argentina, Brazil, France. With this, everyone gets a fair mix of good and bad teams.">
+            <Eli5 simple="Each participant gets a fair mix of strong and weak teams. Their combined ranking ends up roughly equal across the room.">
               <p>
-                Without the balancer, Dave pulls Argentina, France, Brazil, and
-                England while you end up with Costa Rica, Iran, Tunisia, and
-                Saudi Arabia. That's the joke that gets old by the second match.
+                A pure random draw can hand one participant Argentina, France,
+                Brazil, and England while another gets Costa Rica, Iran,
+                Tunisia, and Saudi Arabia. The balanced mode prevents that.
               </p>
               <p>The draw runs in two passes.</p>
             </Eli5>
@@ -127,17 +125,16 @@ export default function InfoPage() {
 
         <Card>
           <SectionHeader eyebrow="Or skip the maths" title="Pure random mode" />
-          <Eli5 simple="Like pulling names out of a hat. No strategy, just luck.">
+          <Eli5 simple="No strength balancing or clash avoidance — pure random shuffle.">
             <p className="text-sm text-white/75 leading-relaxed">
-              One pool, shuffled with a cryptographic PRNG, dealt round-robin.
-              Still uses duplicates to even out counts and still caps the
-              shared-team load — but doesn't try to balance strength or avoid
-              clashes. Quick and unpredictable when variance is the whole point.
+              All teams in one pool, shuffled with a cryptographic PRNG, dealt
+              round-robin. Still uses duplicates to even out counts and still
+              caps the shared-team load, but does not balance strength or
+              avoid clashes.
             </p>
             <p className="mt-3 text-sm text-white/75 leading-relaxed">
-              Admins pick the mode when creating a sweepstake. The choice is
-              recorded in the draw's audit trail so participants always know
-              which one ran.
+              The mode is recorded in the draw's audit trail so participants
+              always know which one ran.
             </p>
           </Eli5>
         </Card>
@@ -203,6 +200,7 @@ export default function InfoPage() {
             <ScoringTable
               title="Reaching each round"
               rows={[
+                ["Round of 32", `+${r.qualifyR32}`],
                 ["Round of 16", `+${r.qualifyR16}`],
                 ["Quarter-final", `+${r.qualifyQF}`],
                 ["Semi-final", `+${r.qualifySF}`],

@@ -4,7 +4,7 @@
 
 :root {
   color-scheme: dark;
-  --font-display: "Bebas Neue", "Oswald", "Impact", sans-serif;
+  --font-display: var(--font-sans);
 }
 
 html,
@@ -52,16 +52,16 @@ body::before {
 }
 
 .display {
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .scoreboard-num {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .row-enter {

@@ -155,6 +155,7 @@ export default async function TournamentInfoPage({ params }: { params: { slug: s
           <ScoringTable
             title="Reaching each round"
             rows={[
+              ["Round of 32", `+${rules.qualifyR32}`],
               ["Round of 16", `+${rules.qualifyR16}`],
               ["Quarter-final", `+${rules.qualifyQF}`],
               ["Semi-final", `+${rules.qualifySF}`],

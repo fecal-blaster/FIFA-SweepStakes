@@ -6,9 +6,16 @@ import { formatShortKickoff } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-const STAGES: MatchStage[] = ["ROUND_OF_16", "QUARTER_FINAL", "SEMI_FINAL", "FINAL"];
+const STAGES: MatchStage[] = [
+  "ROUND_OF_32",
+  "ROUND_OF_16",
+  "QUARTER_FINAL",
+  "SEMI_FINAL",
+  "FINAL"
+];
 const STAGE_LABEL: Record<MatchStage, string> = {
   GROUP: "Group",
+  ROUND_OF_32: "Round of 32",
   ROUND_OF_16: "Round of 16",
   QUARTER_FINAL: "Quarter-finals",
   SEMI_FINAL: "Semi-finals",
@@ -41,7 +48,7 @@ export default async function BracketPage({ params }: { params: { slug: string }
         <h1 className="display text-4xl text-white mt-1">{t.name} — Bracket</h1>
       </header>
 
-      <div className="grid md:grid-cols-4 gap-4 overflow-x-auto">
+      <div className="grid md:grid-cols-5 gap-4 overflow-x-auto">
         {STAGES.map((stage) => {
           const rounds = groups[stage] ?? [];
           return (

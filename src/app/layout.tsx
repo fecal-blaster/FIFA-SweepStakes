@@ -1,13 +1,13 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Inter, Bebas_Neue, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 
-const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
-const display = Bebas_Neue({
+// Single readable sans-serif throughout. The "display" class adds weight and
+// tracking but uses the same family so everything stays legible.
+const sans = Inter({
   subsets: ["latin"],
-  weight: "400",
-  variable: "--font-display",
+  variable: "--font-sans",
   display: "swap"
 });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${sans.variable} ${display.variable} ${mono.variable}`}>
+    <html lang="en" className={`dark ${sans.variable} ${mono.variable}`}>
       <head>
         {/* Unregister stale service workers from previous localhost apps.
             Without this Safari can intercept our JS bundle and crash with
@@ -59,9 +59,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </span>
               <div className="flex flex-col leading-none">
                 <span className="display text-xl text-white">FIFA Sweepstakes</span>
-                <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">
-                  Live · Random · Pub-tested
-                </span>
               </div>
             </Link>
             <nav className="flex items-center gap-1 text-sm">
@@ -74,7 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-8">{children}</main>
         <footer className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-10 text-xs text-white/40">
           <div className="divider mb-6" />
-          <p>Run by mates, for mates. Now stop pretending you don't care who gets Argentina.</p>
+          <p>FIFA Sweepstakes · self-hosted tournament management.</p>
         </footer>
       </body>
     </html>
