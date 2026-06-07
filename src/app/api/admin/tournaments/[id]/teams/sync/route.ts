@@ -16,8 +16,17 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     let created = 0;
     let updated = 0;
     for (const team of snapshot.teams) {
+      // Match on externalId (best), then 3-letter code (handles renames like
+      // "Korea Republic" vs "South Korea"), then exact name. Stops duplicates
+      // from creeping in when a previous auto-seed used different identifiers
+      // than the provider.
+      const matchOr: { externalId?: string; code?: string; name?: string }[] = [
+        { externalId: team.externalId }
+      ];
+      if (team.code) matchOr.push({ code: team.code });
+      matchOr.push({ name: team.name });
       const existing = await prisma.team.findFirst({
-        where: { tournamentId: t.id, OR: [{ externalId: team.externalId }, { name: team.name }] }
+        where: { tournamentId: t.id, OR: matchOr }
       });
       if (existing) {
         await prisma.team.update({

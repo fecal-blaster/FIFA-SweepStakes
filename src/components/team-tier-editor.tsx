@@ -32,9 +32,39 @@ export function TeamTierEditor({
   const [sort, setSort] = useState<"world" | "ranking" | "name" | "tier">("world");
   const [filter, setFilter] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
-  const [working, setWorking] = useState<"load" | "recompute" | null>(null);
+  const [working, setWorking] = useState<"load" | "recompute" | "reset" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+
+  async function resetTeams() {
+    if (
+      !confirm(
+        "This wipes every team in this tournament and re-pulls from the football data provider. Any allocations and match data tied to the current teams will be deleted. Continue?"
+      )
+    ) {
+      return;
+    }
+    setWorking("reset");
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await fetch(
+        `/api/admin/tournaments/${tournamentId}/teams/reset`,
+        { method: "POST" }
+      );
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error ?? `Failed (${res.status})`);
+      }
+      const body = await res.json();
+      setMsg(`Wiped ${body.removed} stale teams, pulled ${body.created} from provider.`);
+      router.refresh();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setWorking(null);
+    }
+  }
 
   // Augment each team with its current FIFA world rank position (if known).
   const annotated = useMemo(
@@ -177,6 +207,9 @@ export function TeamTierEditor({
           </Button>
           <Button variant="ghost" size="sm" onClick={recomputeTiers} disabled={working !== null}>
             {working === "recompute" ? "Recomputing…" : "Recompute tiers"}
+          </Button>
+          <Button variant="danger" size="sm" onClick={resetTeams} disabled={working !== null}>
+            {working === "reset" ? "Resetting…" : "Wipe & re-sync from provider"}
           </Button>
         </div>
       </div>

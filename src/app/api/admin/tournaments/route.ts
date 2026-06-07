@@ -45,12 +45,15 @@ export async function POST(req: Request) {
       }
     });
 
-    // Auto-seed the actual 48-team World Cup 2026 field (not "top 48 by
-    // ranking" — that excludes nations like New Zealand who qualified via OFC).
-    // Tiers are bucketed by ranking quartile across the qualified set; admin
-    // can edit ranking points or tiers per team afterwards.
+    // Auto-seed only when there's no real football data provider configured.
+    // With an API key, the admin should click "Sync teams" so the database
+    // gets the provider's external IDs — those are what later link fixtures
+    // to teams. Hard-coding fake external IDs here breaks fixture sync.
     let seededTeams = 0;
-    if (input.competitionCode.toUpperCase() === "WC") {
+    const hasRealProvider =
+      !!process.env.FOOTBALL_DATA_API_KEY &&
+      (process.env.FOOTBALL_PROVIDER ?? "football-data-org") !== "mock";
+    if (input.competitionCode.toUpperCase() === "WC" && !hasRealProvider) {
       const field = wc2026Teams().sort((a, b) => b.points - a.points);
       await prisma.team.createMany({
         data: field.map((team, i) => ({
