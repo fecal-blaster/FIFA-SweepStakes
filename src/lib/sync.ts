@@ -47,6 +47,11 @@ export async function syncTournament(tournamentId: string): Promise<SyncReport> 
       status: m.status,
       homeTeamId: home?.id ?? null,
       awayTeamId: away?.id ?? null,
+      // Persist whatever name the provider gives, even for unlinked
+      // (placeholder) knockout sides. The UI falls back to this so
+      // upcoming fixtures don't render as "TBD" prematurely.
+      homeTeamFallback: m.homeTeamName ?? null,
+      awayTeamFallback: m.awayTeamName ?? null,
       homeScore: m.homeScore ?? null,
       awayScore: m.awayScore ?? null,
       winnerSide: m.winnerSide ?? null

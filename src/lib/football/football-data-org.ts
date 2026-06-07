@@ -124,6 +124,8 @@ export class FootballDataOrgProvider implements FootballProvider {
         status: mapStatus(m.status),
         homeTeamExtId: m.homeTeam.id != null ? String(m.homeTeam.id) : undefined,
         awayTeamExtId: m.awayTeam.id != null ? String(m.awayTeam.id) : undefined,
+        homeTeamName: m.homeTeam.name ?? undefined,
+        awayTeamName: m.awayTeam.name ?? undefined,
         homeScore: home ?? undefined,
         awayScore: away ?? undefined,
         winnerSide

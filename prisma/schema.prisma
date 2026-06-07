@@ -200,6 +200,12 @@ model Match {
   status        MatchStatus @default(SCHEDULED)
   homeTeamId    String?
   awayTeamId    String?
+  // Provider-supplied placeholder names so upcoming knockout fixtures can show
+  // "Winners Group A" / "Runners-up Group D" instead of "TBD" before the
+  // bracket fills in. Once homeTeamId/awayTeamId resolve, these stay as the
+  // historical label and the UI prefers the linked Team.
+  homeTeamFallback String?
+  awayTeamFallback String?
   homeScore     Int?
   awayScore     Int?
   // Includes penalty shootout winner if applicable: "HOME" | "AWAY" | null

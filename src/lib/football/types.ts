@@ -21,6 +21,10 @@ export type ProviderMatch = {
   status: MatchStatus;
   homeTeamExtId?: string;
   awayTeamExtId?: string;
+  /** Always populated by the provider, even for knockouts pre-decided
+   *  ("Winners Group A"). Used when the team isn't linked yet. */
+  homeTeamName?: string;
+  awayTeamName?: string;
   homeScore?: number;
   awayScore?: number;
   /** "HOME" | "AWAY" — including the side that won after penalties. */

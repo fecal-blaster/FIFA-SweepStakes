@@ -60,14 +60,14 @@ export default async function BracketPage({ params }: { params: { slug: string }
                   className="rounded-xl border border-white/8 bg-ink-900/60 p-3 hover:border-white/15 transition"
                 >
                   <Side
-                    name={m.homeTeam?.name ?? "TBD"}
+                    name={m.homeTeam?.name ?? m.homeTeamFallback ?? "TBD"}
                     code={m.homeTeam?.code ?? null}
                     score={m.homeScore}
                     winner={m.winnerSide === "HOME"}
                   />
                   <div className="my-1.5 h-px bg-white/10" />
                   <Side
-                    name={m.awayTeam?.name ?? "TBD"}
+                    name={m.awayTeam?.name ?? m.awayTeamFallback ?? "TBD"}
                     code={m.awayTeam?.code ?? null}
                     score={m.awayScore}
                     winner={m.winnerSide === "AWAY"}
