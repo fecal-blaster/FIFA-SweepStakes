@@ -10,6 +10,8 @@ export const metadata = {
     "How the draw works, what gets you points, and why no-one can rig it."
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function InfoPage() {
   const r = DEFAULT_SCORING;
   const settings = await getSiteSettings();
