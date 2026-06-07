@@ -17,35 +17,56 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     if (scope === "upcoming") where.status = { in: ["SCHEDULED"] };
     if (scope === "recent") where.status = { in: ["FINISHED"] };
 
-    const matches = await prisma.match.findMany({
-      where,
-      orderBy:
-        scope === "recent"
-          ? { kickoff: "desc" }
-          : scope === "upcoming"
-            ? { kickoff: "asc" }
-            : [{ status: "asc" }, { kickoff: "asc" }],
-      take: scope === "recent" ? 12 : 50,
-      include: {
-        homeTeam: { select: { name: true, code: true } },
-        awayTeam: { select: { name: true, code: true } }
-      }
-    });
+    const [matches, allocations] = await Promise.all([
+      prisma.match.findMany({
+        where,
+        orderBy:
+          scope === "recent"
+            ? { kickoff: "desc" }
+            : scope === "upcoming"
+              ? { kickoff: "asc" }
+              : [{ status: "asc" }, { kickoff: "asc" }],
+        take: scope === "recent" ? 12 : 50,
+        include: {
+          homeTeam: { select: { id: true, name: true, code: true } },
+          awayTeam: { select: { id: true, name: true, code: true } }
+        }
+      }),
+      // One round-trip for all active-draw allocations, indexed by teamId.
+      prisma.teamAllocation.findMany({
+        where: { tournamentId: t.id, draw: { isActive: true } },
+        select: {
+          teamId: true,
+          participant: { select: { id: true, name: true } }
+        }
+      })
+    ]);
+
+    const ownerByTeamId = new Map(
+      allocations.map((a) => [a.teamId, { id: a.participant.id, name: a.participant.name }])
+    );
+
     return ok({
-      matches: matches.map((m) => ({
-        id: m.id,
-        stage: m.stage,
-        groupName: m.groupName,
-        status: m.status,
-        kickoff: m.kickoff.toISOString(),
-        homeName: m.homeTeam?.name ?? "TBD",
-        homeCode: m.homeTeam?.code ?? null,
-        homeScore: m.homeScore,
-        awayName: m.awayTeam?.name ?? "TBD",
-        awayCode: m.awayTeam?.code ?? null,
-        awayScore: m.awayScore,
-        winnerSide: m.winnerSide
-      }))
+      matches: matches.map((m) => {
+        const homeOwner = m.homeTeam ? ownerByTeamId.get(m.homeTeam.id) ?? null : null;
+        const awayOwner = m.awayTeam ? ownerByTeamId.get(m.awayTeam.id) ?? null : null;
+        return {
+          id: m.id,
+          stage: m.stage,
+          groupName: m.groupName,
+          status: m.status,
+          kickoff: m.kickoff.toISOString(),
+          homeName: m.homeTeam?.name ?? "TBD",
+          homeCode: m.homeTeam?.code ?? null,
+          homeScore: m.homeScore,
+          homeOwner,
+          awayName: m.awayTeam?.name ?? "TBD",
+          awayCode: m.awayTeam?.code ?? null,
+          awayScore: m.awayScore,
+          awayOwner,
+          winnerSide: m.winnerSide
+        };
+      })
     });
   } catch (e) {
     return handleError(e);

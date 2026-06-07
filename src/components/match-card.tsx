@@ -13,9 +13,11 @@ export type MatchCardData = {
   homeName: string;
   homeCode: string | null;
   homeScore: number | null;
+  homeOwner: { id: string; name: string } | null;
   awayName: string;
   awayCode: string | null;
   awayScore: number | null;
+  awayOwner: { id: string; name: string } | null;
   winnerSide: "HOME" | "AWAY" | null;
 };
 
@@ -60,6 +62,8 @@ export function MatchCard({
   const scoreSize = size === "lg" ? "text-5xl" : size === "sm" ? "text-2xl" : "text-3xl";
   const isLive = clock.kind === "live";
   const isFinal = clock.kind === "finished";
+  const sameOwner =
+    match.homeOwner && match.awayOwner && match.homeOwner.id === match.awayOwner.id;
 
   return (
     <div
@@ -77,11 +81,18 @@ export function MatchCard({
         <ClockBadge clock={clock} />
       </div>
 
+      {sameOwner && (
+        <div className="mx-3 mt-2 rounded-md bg-gold-500/10 ring-1 ring-gold-500/30 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-gold-400 text-center">
+          ⚡ {match.homeOwner!.name}'s teams clash
+        </div>
+      )}
+
       <div className="px-3 pb-3 pt-2 space-y-2">
         <Row
           name={match.homeName}
           code={match.homeCode}
           score={match.homeScore}
+          owner={match.homeOwner}
           dim={isFinal && match.winnerSide === "AWAY"}
           highlight={match.winnerSide === "HOME"}
           pop={popHome}
@@ -92,6 +103,7 @@ export function MatchCard({
           name={match.awayName}
           code={match.awayCode}
           score={match.awayScore}
+          owner={match.awayOwner}
           dim={isFinal && match.winnerSide === "HOME"}
           highlight={match.winnerSide === "AWAY"}
           pop={popAway}
@@ -107,6 +119,7 @@ function Row({
   name,
   code,
   score,
+  owner,
   dim,
   highlight,
   pop,
@@ -116,6 +129,7 @@ function Row({
   name: string;
   code: string | null;
   score: number | null;
+  owner: { id: string; name: string } | null;
   dim: boolean;
   highlight: boolean;
   pop: boolean;
@@ -125,17 +139,27 @@ function Row({
   return (
     <div className="flex items-center gap-3">
       <Flag code={code} size="lg" />
-      <div
-        className={cn(
-          "flex-1 truncate font-medium",
-          dim ? "text-white/40" : highlight ? "text-lime-400" : "text-white"
-        )}
-      >
-        {name}
+      <div className="flex-1 min-w-0">
+        <div
+          className={cn(
+            "truncate font-medium leading-tight",
+            dim ? "text-white/40" : highlight ? "text-lime-400" : "text-white"
+          )}
+        >
+          {name}
+        </div>
+        <div
+          className={cn(
+            "text-[10px] uppercase tracking-[0.18em] leading-tight truncate mt-0.5",
+            owner ? (dim ? "text-white/30" : "text-cyan-400/85") : "text-white/35"
+          )}
+        >
+          {owner ? owner.name : "—"}
+        </div>
       </div>
       <div
         className={cn(
-          "scoreboard-num tabular",
+          "scoreboard-num tabular shrink-0",
           scoreSize,
           dim ? "text-white/30" : highlight ? "text-lime-400" : "text-white",
           pop && "animate-score-pop"

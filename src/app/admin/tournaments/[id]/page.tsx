@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/money";
 import { AdminTournamentControls } from "@/components/admin-tournament-controls";
 import { EditTournamentForm } from "@/components/edit-tournament-form";
 import { ScoringEditor } from "@/components/scoring-editor";
+import { DangerZone } from "@/components/danger-zone";
 import type { ScoringRules } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
@@ -73,6 +74,8 @@ export default async function AdminTournamentPage({ params }: { params: { id: st
         initialScoring={(t.scoringJson as unknown as ScoringRules | null) ?? null}
         initialPayoutBps={(t.payoutBpsJson as number[] | null) ?? null}
       />
+
+      <DangerZone tournament={{ id: t.id, name: t.name }} />
 
       <section className="grid lg:grid-cols-2 gap-4">
         <Card>
