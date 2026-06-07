@@ -257,7 +257,18 @@ export function TeamTierEditor({
               key={t.id}
               className="flex items-center gap-2 rounded-lg bg-ink-900/60 ring-1 ring-white/8 px-3 py-1.5"
             >
-              <span className="w-9 text-right text-[11px] tabular text-white/55 shrink-0">
+              <span
+                className={cn(
+                  "w-10 text-right text-xs tabular font-semibold shrink-0",
+                  t.worldRank != null && t.worldRank <= 8
+                    ? "text-gold-400"
+                    : t.worldRank != null && t.worldRank <= 16
+                      ? "text-silver-400"
+                      : t.worldRank != null && t.worldRank <= 24
+                        ? "text-bronze-400"
+                        : "text-white/45"
+                )}
+              >
                 {t.worldRank != null ? `#${t.worldRank}` : "—"}
               </span>
               <Flag code={t.code} size="md" />

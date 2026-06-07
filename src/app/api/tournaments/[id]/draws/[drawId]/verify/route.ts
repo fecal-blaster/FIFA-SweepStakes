@@ -16,17 +16,37 @@ export async function GET(
     if (!draw) return notFound("Draw not found");
     const t = draw.tournament;
     const storedCo = (draw.coOccurrenceJson as [string, string][] | null) ?? undefined;
-    const { ok: matches, computed } = verifyAllocation(
-      {
-        mode: draw.mode,
-        seedSecret: draw.seedSecret,
-        participants: t.participants.map((p) => ({ id: p.id, name: p.name })),
-        teams: t.teams.map((te) => ({
+    // Verify against the snapshot stored at draw time, falling back to current
+    // state for older draws that pre-date the snapshot columns. Editing team
+    // rankings post-draw must NOT break verification, hence the snapshot.
+    const teamSnapshot = (draw.teamSnapshotJson as
+      | { id: string; name: string; tier: number; rankingPoints: number }[]
+      | null) ?? null;
+    const participantSnapshot = (draw.participantSnapshotJson as
+      | { id: string; name: string }[]
+      | null) ?? null;
+    const participants = participantSnapshot
+      ? participantSnapshot
+      : t.participants.map((p) => ({ id: p.id, name: p.name }));
+    const teams = teamSnapshot
+      ? teamSnapshot.map((te) => ({
           id: te.id,
           name: te.name,
           tier: te.tier,
           rankingPoints: te.rankingPoints
-        })),
+        }))
+      : t.teams.map((te) => ({
+          id: te.id,
+          name: te.name,
+          tier: te.tier,
+          rankingPoints: te.rankingPoints
+        }));
+    const { ok: matches, computed } = verifyAllocation(
+      {
+        mode: draw.mode,
+        seedSecret: draw.seedSecret,
+        participants,
+        teams,
         coOccurrence: storedCo
       },
       draw.verifyHash

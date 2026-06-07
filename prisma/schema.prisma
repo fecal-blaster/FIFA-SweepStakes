@@ -151,6 +151,12 @@ model Draw {
   // balanced algorithm to minimise self-clashes. Stored so verification is
   // reproducible even if the fixture list mutates afterwards.
   coOccurrenceJson Json?
+  // Snapshot of the teams as they were at draw time — id, name, tier,
+  // rankingPoints. Verification re-runs against this, so editing rankings
+  // post-draw doesn't break the audit trail.
+  teamSnapshotJson Json?
+  // Snapshot of participants at draw time — id, name. Same reasoning.
+  participantSnapshotJson Json?
   createdAt     DateTime @default(now())
   // When superseded by a redraw
   supersededAt  DateTime?
