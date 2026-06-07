@@ -9,6 +9,7 @@ import { ScoringEditor } from "@/components/scoring-editor";
 import { DangerZone } from "@/components/danger-zone";
 import { BulkImport } from "@/components/bulk-import";
 import { MatchOverride } from "@/components/match-override";
+import { DiscordConfig } from "@/components/discord-config";
 import type { ScoringRules } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +81,8 @@ export default async function AdminTournamentPage({ params }: { params: { id: st
         initialScoring={(t.scoringJson as unknown as ScoringRules | null) ?? null}
         initialPayoutBps={(t.payoutBpsJson as number[] | null) ?? null}
       />
+
+      <DiscordConfig tournamentId={t.id} initialUrl={t.discordWebhookUrl} />
 
       <DangerZone tournament={{ id: t.id, name: t.name }} />
 

@@ -3,6 +3,7 @@ import { getProvider, type ProviderMatch } from "@/lib/football";
 import { DEFAULT_SCORING, QUALIFY_KIND, type ScoringRules } from "@/lib/scoring";
 import type { MatchStage } from "@prisma/client";
 import { emitTournament } from "@/lib/io";
+import { COLOR, notifyTournament } from "@/lib/discord";
 
 export type SyncReport = {
   matchesUpserted: number;
@@ -62,12 +63,38 @@ export async function syncTournament(tournamentId: string): Promise<SyncReport> 
       existing.homeScore !== data.homeScore ||
       existing.awayScore !== data.awayScore ||
       existing.status !== data.status;
+    const justFinished =
+      existing?.status !== "FINISHED" &&
+      data.status === "FINISHED" &&
+      home &&
+      away &&
+      data.homeScore != null &&
+      data.awayScore != null;
     if (scoreChanged) {
       emitTournament(tournament.id, "match:update", {
         matchId: match.id,
         status: data.status,
         homeScore: data.homeScore,
         awayScore: data.awayScore
+      });
+    }
+    if (justFinished && home && away) {
+      const winnerName =
+        m.winnerSide === "HOME" ? home.name : m.winnerSide === "AWAY" ? away.name : null;
+      notifyTournament(tournament.id, {
+        title: `Full time — ${home.name} ${data.homeScore}–${data.awayScore} ${away.name}`,
+        description:
+          m.stage === "FINAL" && winnerName
+            ? `🏆 **${winnerName}** are champions.`
+            : winnerName
+              ? `${winnerName} progress.`
+              : "Honours even.",
+        color: m.stage === "FINAL" ? COLOR.gold : COLOR.lime,
+        fields: [
+          { name: "Stage", value: m.stage.replace(/_/g, " "), inline: true },
+          ...(m.groupName ? [{ name: "Group", value: m.groupName, inline: true }] : [])
+        ],
+        timestamp: new Date().toISOString()
       });
     }
 

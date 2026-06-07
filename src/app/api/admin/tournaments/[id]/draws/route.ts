@@ -6,6 +6,7 @@ import { generateSeed } from "@/lib/allocation/seed";
 import { runAllocation, type AllocationInput } from "@/lib/allocation";
 import { audit } from "@/lib/audit";
 import { emitTournament } from "@/lib/io";
+import { COLOR, notifyTournament } from "@/lib/discord";
 
 const CreateDrawSchema = z.object({
   mode: z.enum(["PURE_RANDOM", "BALANCED"]).optional(),
@@ -100,6 +101,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       drawId: draw.id,
       seed: seed.display,
       verifyHash: result.verifyHash
+    });
+
+    notifyTournament(tournament.id, {
+      title: input.redrawReason ? "🎲 Redraw complete" : "🎲 Draw complete",
+      description: `**${mode}** mode · seed \`${seed.display}\``,
+      color: COLOR.cyan,
+      fields: result.assignments.map((a) => {
+        const p = tournament.participants.find((p) => p.id === a.participantId);
+        const teamNames = a.teamIds
+          .map((id) => tournament.teams.find((t) => t.id === id)?.name ?? "?")
+          .join(", ");
+        return { name: p?.name ?? "?", value: teamNames, inline: true };
+      }),
+      timestamp: new Date().toISOString()
     });
 
     return ok(

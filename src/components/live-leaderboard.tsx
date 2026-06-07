@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import { io, type Socket } from "socket.io-client";
 import { formatMoney } from "@/lib/money";
@@ -98,7 +99,13 @@ export function LiveLeaderboard({
               <MovementArrow delta={move} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-white font-medium truncate">{r.name}</span>
+                  <Link
+                    href={`/t/${slug}/p/${r.participantId}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-white font-medium truncate hover:text-lime-400"
+                  >
+                    {r.name}
+                  </Link>
                   {!r.paid && (
                     <span className="text-[9px] uppercase tracking-wider text-live-400 ring-1 ring-live-500/30 px-1.5 py-0.5 rounded">
                       unpaid

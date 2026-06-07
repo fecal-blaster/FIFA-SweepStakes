@@ -27,7 +27,15 @@ const PatchSchema = z.object({
   registrationDeadline: z.string().datetime().nullable().optional(),
   drawAt: z.string().datetime().nullable().optional(),
   payoutBps: z.array(z.number().int().min(0).max(10000)).min(1).max(8).nullable().optional(),
-  scoring: ScoringSchema.optional()
+  scoring: ScoringSchema.optional(),
+  discordWebhookUrl: z
+    .string()
+    .url()
+    .refine((u) => u.startsWith("https://discord.com/api/webhooks/") || u.startsWith("https://discordapp.com/api/webhooks/"), {
+      message: "Must be a discord.com webhook URL"
+    })
+    .nullable()
+    .optional()
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -54,7 +62,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             ? undefined
             : input.scoring === null
               ? Prisma.JsonNull
-              : (input.scoring as Prisma.InputJsonValue)
+              : (input.scoring as Prisma.InputJsonValue),
+        discordWebhookUrl: input.discordWebhookUrl === undefined ? undefined : input.discordWebhookUrl
       }
     });
     await audit({

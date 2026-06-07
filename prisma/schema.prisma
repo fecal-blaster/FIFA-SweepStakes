@@ -54,6 +54,8 @@ model Tournament {
   payoutBpsJson       Json             @default("[5000, 3333, 1667]")
   // Optional override of scoring rules
   scoringJson         Json?
+  // Optional Discord webhook URL for notifications (draw run, results, champion)
+  discordWebhookUrl   String?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 

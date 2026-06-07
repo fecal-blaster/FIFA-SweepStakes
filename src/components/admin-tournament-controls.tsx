@@ -113,6 +113,12 @@ export function AdminTournamentControls({
         >
           {busy === "sync-fixtures" ? "Syncing fixtures…" : "Sync fixtures & scores"}
         </Button>
+        <Button
+          variant="ghost"
+          href={`/api/admin/tournaments/${tournament.id}/export`}
+        >
+          ⬇ Export JSON
+        </Button>
       </div>
       {hasActiveDraw && (
         <div className="mt-3">
