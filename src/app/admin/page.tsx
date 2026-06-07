@@ -4,6 +4,7 @@ import { currentAdmin } from "@/lib/session";
 import { Card, Button, StatusBadge } from "@/components/ui";
 import { formatMoney } from "@/lib/money";
 import { CreateTournamentForm } from "@/components/create-tournament-form";
+import { AdminList } from "@/components/admin-list";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,8 @@ export default async function AdminHome() {
         <h2 className="text-lg font-semibold text-white">Create tournament</h2>
         <CreateTournamentForm />
       </Card>
+
+      <AdminList currentAdminId={admin.id} />
 
       <div className="space-y-3">
         <h2 className="text-lg font-semibold text-white">Tournaments</h2>
