@@ -2,46 +2,61 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { formatMoney } from "@/lib/money";
 import { Card, StatusBadge, Flag } from "@/components/ui";
+import { getSiteSettings, parsePills } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const tournaments = await prisma.tournament.findMany({
-    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-    include: {
-      _count: { select: { participants: true, teams: true } },
-      participants: { where: { paid: true }, select: { id: true } }
-    }
-  });
+  const [tournaments, settings] = await Promise.all([
+    prisma.tournament.findMany({
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+      include: {
+        _count: { select: { participants: true, teams: true } },
+        participants: { where: { paid: true }, select: { id: true } }
+      }
+    }),
+    getSiteSettings()
+  ]);
+  const pills = parsePills(settings.homePills);
 
   return (
     <div className="space-y-10">
       {/* HERO */}
       <section className="relative overflow-hidden rounded-3xl border border-white/8 bg-ink-900/60 p-10">
-        <div
-          className="absolute inset-0 opacity-40 pointer-events-none"
-          style={{
-            backgroundImage:
-              "radial-gradient(700px 350px at 90% 10%, rgba(255,255,255,0.05), transparent 60%)"
-          }}
-        />
+        {settings.backdropDataUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={settings.backdropDataUrl}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 w-full h-full object-cover opacity-25 pointer-events-none"
+          />
+        ) : (
+          <div
+            className="absolute inset-0 opacity-40 pointer-events-none"
+            style={{
+              backgroundImage:
+                "radial-gradient(700px 350px at 90% 10%, rgba(255,255,255,0.05), transparent 60%)"
+            }}
+          />
+        )}
         <div className="relative z-10 max-w-3xl">
           <p className="text-[10px] uppercase tracking-[0.4em] text-white/55 mb-3">
-            FIFA Sweepstakes
+            {settings.homeEyebrow}
           </p>
           <h1 className="display text-4xl sm:text-5xl text-white leading-tight">
-            Tournament management for FIFA sweepstakes.
+            {settings.homeTitle}
           </h1>
           <p className="mt-4 text-base text-white/70 max-w-xl">
-            Verifiable team draws, live scoring from the official feed, an
-            auto-updating leaderboard, and configurable prize splits.
+            {settings.homeDescription}
           </p>
-          <div className="mt-6 flex flex-wrap gap-2">
-            <FeaturePill text="Verifiable draws" />
-            <FeaturePill text="Live scoring" />
-            <FeaturePill text="Configurable prize splits" />
-            <FeaturePill text="Self-hosted" />
-          </div>
+          {pills.length > 0 && (
+            <div className="mt-6 flex flex-wrap gap-2">
+              {pills.map((p) => (
+                <FeaturePill key={p} text={p} />
+              ))}
+            </div>
+          )}
           <div className="mt-5">
             <Link
               href="/info"

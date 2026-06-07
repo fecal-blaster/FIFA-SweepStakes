@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, SectionHeader } from "@/components/ui";
 import { Eli5 } from "@/components/eli5";
 import { DEFAULT_SCORING } from "@/lib/scoring";
+import { getSiteSettings } from "@/lib/settings";
 
 export const metadata = {
   title: "How it works — FIFA Sweepstakes",
@@ -9,8 +10,9 @@ export const metadata = {
     "How the draw works, what gets you points, and why no-one can rig it."
 };
 
-export default function InfoPage() {
+export default async function InfoPage() {
   const r = DEFAULT_SCORING;
+  const settings = await getSiteSettings();
   return (
     <div className="space-y-10">
       {/* HERO */}
@@ -24,14 +26,13 @@ export default function InfoPage() {
         />
         <div className="relative z-10 max-w-3xl">
           <p className="text-[10px] uppercase tracking-[0.4em] text-white/55 mb-3">
-            How it works
+            {settings.infoEyebrow}
           </p>
           <h1 className="display text-3xl sm:text-4xl text-white leading-tight">
-            Team allocation, scoring, and verification.
+            {settings.infoTitle}
           </h1>
           <p className="mt-3 text-white/70 max-w-xl">
-            How teams are distributed across participants, how points are
-            awarded, and how anyone can independently verify a draw.
+            {settings.infoDescription}
           </p>
         </div>
       </section>

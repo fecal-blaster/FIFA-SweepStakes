@@ -10,6 +10,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// --- Site customisation -------------------------------------------------
+
+// Singleton row (id = 1) holding admin-editable site text and brand assets.
+// All fields have sensible defaults so first-time deploys "just work" without
+// the admin touching anything. Image fields hold base64 data URLs — kept in
+// the DB so backups capture branding too and the deploy stays stateless.
+model SiteSettings {
+  id              Int      @id @default(1)
+  siteName        String   @default("FIFA Sweepstakes")
+  homeEyebrow     String   @default("FIFA Sweepstakes")
+  homeTitle       String   @default("Tournament management for FIFA sweepstakes.")
+  homeDescription String   @default("Verifiable team draws, live scoring from the official feed, an auto-updating leaderboard, and configurable prize splits.")
+  homePills       String   @default("Verifiable draws,Live scoring,Configurable prize splits,Self-hosted")
+  infoEyebrow     String   @default("How it works")
+  infoTitle       String   @default("Team allocation, scoring, and verification.")
+  infoDescription String   @default("How teams are distributed across participants, how points are awarded, and how anyone can independently verify a draw.")
+  footerText      String   @default("FIFA Sweepstakes · self-hosted tournament management.")
+  logoDataUrl     String?  @db.Text
+  backdropDataUrl String?  @db.Text
+  updatedAt       DateTime @updatedAt
+}
+
 // --- Auth ---------------------------------------------------------------
 
 model AdminUser {

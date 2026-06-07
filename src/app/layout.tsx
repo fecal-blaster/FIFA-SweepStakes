@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { getSiteSettings } from "@/lib/settings";
 
 // Single readable sans-serif throughout. The "display" class adds weight and
 // tracking but uses the same family so everything stays legible.
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
   description: "Fair, transparent, auditable FIFA tournament sweepstakes."
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const settings = await getSiteSettings();
   return (
     <html lang="en" className={`dark ${sans.variable} ${mono.variable}`}>
       <head>
@@ -50,28 +52,37 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="relative z-30 border-b border-white/5 bg-ink-950/60 backdrop-blur-xl sticky top-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3">
-              <span
-                className="relative inline-flex w-10 h-10 items-center justify-center rounded-lg bg-gradient-to-br from-lime-500 to-cyan-500 shadow-glow text-base"
-                style={{ fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif' }}
-                aria-hidden
-              >
-                🇮🇳⚽
-              </span>
+              {settings.logoDataUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={settings.logoDataUrl}
+                  alt={settings.siteName}
+                  className="w-10 h-10 rounded-lg object-cover"
+                />
+              ) : (
+                <span
+                  className="relative inline-flex w-10 h-10 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15 text-base"
+                  aria-hidden
+                >
+                  ⚽
+                </span>
+              )}
               <div className="flex flex-col leading-none">
-                <span className="display text-xl text-white">FIFA Sweepstakes</span>
+                <span className="display text-xl text-white">{settings.siteName}</span>
               </div>
             </Link>
             <nav className="flex items-center gap-1 text-sm">
               <NavLink href="/">Tournaments</NavLink>
               <NavLink href="/info">How it works</NavLink>
               <NavLink href="/admin">Admin</NavLink>
+              <NavLink href="/admin/settings">Settings</NavLink>
             </nav>
           </div>
         </header>
         <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-8">{children}</main>
         <footer className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-10 text-xs text-white/40">
           <div className="divider mb-6" />
-          <p>FIFA Sweepstakes · self-hosted tournament management.</p>
+          <p>{settings.footerText}</p>
         </footer>
       </body>
     </html>
