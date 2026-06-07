@@ -173,14 +173,22 @@ function formatMsg(name: string, body: { [k: string]: unknown }): string {
       verifyHash?: string;
       fixturePairs?: number;
       clashFixtures?: number;
+      sharedTeams?: number;
+      strengthSpreadPct?: number;
     };
-    let msg = `Draw complete. Seed ${d.seed}, hash ${d.verifyHash?.slice(0, 16)}…`;
-    if (typeof d.fixturePairs === "number" && d.fixturePairs > 0) {
-      msg += ` · ${d.clashFixtures ?? 0} self-clash${d.clashFixtures === 1 ? "" : "es"} across ${d.fixturePairs} group fixtures`;
-    } else {
-      msg += " · no fixtures loaded yet — sync fixtures first for clash avoidance";
+    const parts = [`Draw complete. Seed ${d.seed}, hash ${d.verifyHash?.slice(0, 16)}…`];
+    if (typeof d.strengthSpreadPct === "number") {
+      parts.push(`strength spread ${d.strengthSpreadPct.toFixed(1)}%`);
     }
-    return msg;
+    if ((d.sharedTeams ?? 0) > 0) {
+      parts.push(`${d.sharedTeams} team${d.sharedTeams === 1 ? "" : "s"} duplicated for even counts`);
+    }
+    if (typeof d.fixturePairs === "number" && d.fixturePairs > 0) {
+      parts.push(`${d.clashFixtures ?? 0} self-clash${d.clashFixtures === 1 ? "" : "es"} across ${d.fixturePairs} group fixtures`);
+    } else {
+      parts.push("no fixtures loaded — sync fixtures first for clash avoidance");
+    }
+    return parts.join(" · ");
   }
   if (name === "sync-fixtures") {
     return `Fixtures synced — ${body.matchesUpserted} matches, ${body.scoreEventsCreated} new score events.`;

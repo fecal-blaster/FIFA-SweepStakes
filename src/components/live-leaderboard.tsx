@@ -98,7 +98,7 @@ export function LiveLeaderboard({
               </span>
               <MovementArrow delta={move} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Link
                     href={`/t/${slug}/p/${r.participantId}`}
                     onClick={(e) => e.stopPropagation()}
@@ -111,6 +111,7 @@ export function LiveLeaderboard({
                       unpaid
                     </span>
                   )}
+                  <StrengthBadge pct={r.poolStrengthPct} fairPct={board.fairPoolPct} />
                 </div>
                 {!compact && (
                   <div className="mt-1 flex flex-wrap gap-1">
@@ -176,7 +177,14 @@ function Breakdown({ teams }: { teams: TeamBreakdown[] }) {
           <div key={t.id} className="px-3 py-2">
             <div className="flex items-center gap-2">
               <Flag code={t.code} size="md" />
-              <span className="text-sm text-white font-medium flex-1 truncate">{t.name}</span>
+              <span className="text-sm text-white font-medium flex-1 truncate">
+                {t.name}
+                {t.sharedWith.length > 0 && (
+                  <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-cyan-400">
+                    shared with {t.sharedWith.map((s) => s.name).join(", ")}
+                  </span>
+                )}
+              </span>
               <span
                 className={cn(
                   "scoreboard-num text-sm",
@@ -229,6 +237,29 @@ function MovementArrow({ delta }: { delta: number }) {
   return (
     <span className="inline-flex items-center text-live-400 text-xs tabular w-6">
       ▼{Math.abs(delta)}
+    </span>
+  );
+}
+
+function StrengthBadge({ pct, fairPct }: { pct: number; fairPct: number }) {
+  // Percentage gap from the fair share — coloured green within 10%, gold to
+  // 20%, red beyond.
+  const gap = fairPct === 0 ? 0 : (pct - fairPct) / fairPct;
+  const abs = Math.abs(gap);
+  const tone =
+    abs < 0.1 ? "lime" : abs < 0.2 ? "gold" : "live";
+  const colour =
+    tone === "lime"
+      ? "bg-lime-500/10 text-lime-400 ring-lime-500/30"
+      : tone === "gold"
+        ? "bg-gold-500/10 text-gold-400 ring-gold-500/30"
+        : "bg-live-500/10 text-live-400 ring-live-500/30";
+  return (
+    <span
+      title={`Pool strength · fair share is ${fairPct.toFixed(1)}%`}
+      className={`text-[9px] uppercase tracking-[0.15em] px-1.5 py-0.5 rounded ring-1 ${colour}`}
+    >
+      strength {pct.toFixed(1)}%
     </span>
   );
 }

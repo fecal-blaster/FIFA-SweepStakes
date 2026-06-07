@@ -45,25 +45,27 @@ export default async function TournamentInfoPage({ params }: { params: { slug: s
         {t.drawMode === "BALANCED" ? (
           <div className="space-y-3 text-sm text-white/75 leading-relaxed">
             <p>
-              Teams are sorted into <span className="text-lime-400">strength tiers</span>{" "}
-              (Tier 1 = strongest pot, Tier 4 = weakest). Each tier is shuffled
-              independently with a cryptographically secure PRNG. The system deals
-              one team at a time, always to the participant with the{" "}
-              <span className="text-lime-400">lowest current count</span> from that
-              tier.
+              Each team has a <span className="text-lime-400">strength rating</span>{" "}
+              from its tier. The draw deals one team at a time, narrowing
+              candidates through four tie-breakers in this order:
             </p>
+            <ol className="list-decimal pl-5 space-y-1 text-white/70">
+              <li>Fewest teams overall</li>
+              <li>Fewest teams from this tier</li>
+              <li>Fewest of your existing teams that this one will play in the group stage</li>
+              <li>
+                <span className="text-lime-400">Furthest below the fair pool strength %</span>
+                {" "}— keeps everyone's combined ranking flat
+              </li>
+            </ol>
             <p>
-              When the group-stage fixtures are loaded, the same loop also
-              prefers to deal each team to whoever has the{" "}
-              <span className="text-lime-400">fewest existing teams they'd play</span>.
-              So you're much less likely to end up holding Argentina and Brazil if
-              they're in the same group. Random tie-breaks keep it unpredictable.
-            </p>
-            <p>
-              Result: with 32 teams across 4 tiers and 8 participants, everyone gets
-              exactly one team from each tier. With 10 participants, two of them
-              get an extra team — but never two top-tier teams. The distribution is
-              always within ±1 across the room.
+              If there's still more than one candidate, the PRNG picks
+              between them. When the team count doesn't divide evenly across
+              the pool, some teams are{" "}
+              <span className="text-lime-400">duplicated</span> so everyone
+              ends up with the same number — both owners earn the team's
+              points equally. Duplicates are spread across tiers so the
+              strength balance holds.
             </p>
           </div>
         ) : (

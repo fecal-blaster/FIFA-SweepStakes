@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { DEFAULT_SCORING, type ScoringRules } from "@/lib/scoring";
 import { distributePrizePool } from "@/lib/money";
+import { teamStrength } from "@/lib/allocation";
 
 export type ScoreEventDetail = {
   kind: string;
@@ -16,6 +17,9 @@ export type TeamBreakdown = {
   name: string;
   code: string | null;
   flagUrl: string | null;
+  tier: number;
+  /** Other participants who also hold this team (shared duplicate). */
+  sharedWith: { id: string; name: string }[];
   points: number;
   events: ScoreEventDetail[];
 };
@@ -28,6 +32,10 @@ export type LeaderboardRow = {
   teams: TeamBreakdown[];
   points: number;
   projectedPrizeMinor: number;
+  /** Sum of teamStrength(tier) across this participant's teams. */
+  poolStrength: number;
+  /** Pool strength as a percentage of the room total. */
+  poolStrengthPct: number;
 };
 
 export type LeaderboardSummary = {
@@ -36,6 +44,8 @@ export type LeaderboardSummary = {
   participantsTotal: number;
   participantsPaid: number;
   currency: string;
+  /** Ideal pool strength % if perfectly balanced (100 / participants). */
+  fairPoolPct: number;
 };
 
 const EVENT_LABELS: Record<string, string> = {
@@ -96,7 +106,18 @@ export async function computeLeaderboard(tournamentId: string): Promise<Leaderbo
     (tournament.scoringJson as unknown as ScoringRules) ?? DEFAULT_SCORING;
   // Rules already baked into ScoreEvent.points at write time — sum is enough.
 
-  const rows: Omit<LeaderboardRow, "rank" | "projectedPrizeMinor">[] = tournament.participants.map(
+  // Build a quick lookup of every participant who owns each teamId — so we can
+  // surface "shared with Alice & Bob" on duplicated teams.
+  const ownersByTeam = new Map<string, { id: string; name: string }[]>();
+  for (const p of tournament.participants) {
+    for (const a of p.allocations) {
+      const list = ownersByTeam.get(a.team.id) ?? [];
+      list.push({ id: p.id, name: p.name });
+      ownersByTeam.set(a.team.id, list);
+    }
+  }
+
+  const rows: Omit<LeaderboardRow, "rank" | "projectedPrizeMinor" | "poolStrengthPct">[] = tournament.participants.map(
     (p) => {
       const teams: TeamBreakdown[] = p.allocations.map((a) => {
         const events: ScoreEventDetail[] = a.team.scoreEvents.map((e) => {
@@ -123,15 +144,21 @@ export async function computeLeaderboard(tournamentId: string): Promise<Leaderbo
           name: a.team.name,
           code: a.team.code,
           flagUrl: a.team.flagUrl,
+          tier: a.team.tier,
+          sharedWith: (ownersByTeam.get(a.team.id) ?? [])
+            .filter((o) => o.id !== p.id),
           points,
           events
         };
       });
 
       const points = teams.reduce((sum, t) => sum + t.points, 0);
-      return { participantId: p.id, name: p.name, paid: p.paid, teams, points };
+      const poolStrength = teams.reduce((s, t) => s + teamStrength(t.tier), 0);
+      return { participantId: p.id, name: p.name, paid: p.paid, teams, points, poolStrength };
     }
   );
+
+  const totalStrength = rows.reduce((s, r) => s + r.poolStrength, 0) || 1;
 
   rows.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
 
@@ -149,7 +176,8 @@ export async function computeLeaderboard(tournamentId: string): Promise<Leaderbo
     lastRank = rank;
     lastPoints = r.points;
     const projected = prizes[idx] ?? 0;
-    return { ...r, rank, projectedPrizeMinor: projected };
+    const poolStrengthPct = (r.poolStrength / totalStrength) * 100;
+    return { ...r, rank, projectedPrizeMinor: projected, poolStrengthPct };
   });
 
   return {
@@ -157,6 +185,7 @@ export async function computeLeaderboard(tournamentId: string): Promise<Leaderbo
     prizePoolMinor,
     participantsTotal: tournament.participants.length,
     participantsPaid: paidCount,
-    currency: tournament.currency
+    currency: tournament.currency,
+    fairPoolPct: tournament.participants.length > 0 ? 100 / tournament.participants.length : 0
   };
 }

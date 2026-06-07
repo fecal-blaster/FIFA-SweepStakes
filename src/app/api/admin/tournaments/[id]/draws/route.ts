@@ -68,11 +68,36 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     // Stats for the audit log + admin feedback.
     let clashFixtures = 0;
-    const teamOwner = new Map<string, string>();
-    for (const a of result.assignments) for (const tid of a.teamIds) teamOwner.set(tid, a.participantId);
-    for (const [h, a] of coOccurrence) {
-      if (teamOwner.get(h) && teamOwner.get(h) === teamOwner.get(a)) clashFixtures++;
+    const owners = new Map<string, Set<string>>();
+    for (const a of result.assignments) {
+      for (const tid of a.teamIds) {
+        const set = owners.get(tid) ?? new Set<string>();
+        set.add(a.participantId);
+        owners.set(tid, set);
+      }
     }
+    for (const [h, a] of coOccurrence) {
+      const ho = owners.get(h);
+      const ao = owners.get(a);
+      if (ho && ao) {
+        for (const p of ho) if (ao.has(p)) clashFixtures++;
+      }
+    }
+    const sharedTeams = [...owners.values()].filter((s) => s.size > 1).length;
+    // Strength spread across the room — lower is better (0 = perfectly even).
+    const strengths = result.assignments.map((a) => {
+      const teamTiers = a.teamIds.map((tid) => {
+        const t = tournament.teams.find((t) => t.id === tid);
+        return t ? t.tier : 4;
+      });
+      const { teamStrength } = require("@/lib/allocation");
+      return teamTiers.reduce((s: number, tier: number) => s + teamStrength(tier), 0);
+    });
+    const meanStrength = strengths.reduce((s, x) => s + x, 0) / Math.max(1, strengths.length);
+    const strengthSpread =
+      Math.max(...strengths) - Math.min(...strengths);
+    const strengthSpreadPct =
+      meanStrength > 0 ? (strengthSpread / meanStrength) * 100 : 0;
 
     // Persist atomically: deactivate previous draw, write new draw + allocations.
     const draw = await prisma.$transaction(async (tx) => {
@@ -125,7 +150,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         verifyHash: result.verifyHash,
         redrawReason: input.redrawReason,
         fixturePairs: coOccurrence.length,
-        clashFixtures
+        clashFixtures,
+        sharedTeams,
+        strengthSpreadPct: Math.round(strengthSpreadPct * 10) / 10
       }
     });
 
@@ -160,7 +187,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           inputDigest: result.inputDigest,
           createdAt: draw.createdAt,
           fixturePairs: coOccurrence.length,
-          clashFixtures
+          clashFixtures,
+          sharedTeams,
+          strengthSpreadPct: Math.round(strengthSpreadPct * 10) / 10
         },
         assignments: result.assignments
       },

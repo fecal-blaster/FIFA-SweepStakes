@@ -123,9 +123,13 @@ model TeamAllocation {
   participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   team        Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
-  @@unique([drawId, teamId])
+  // A single (participant, team) pair stays unique within a draw, but the same
+  // team can now be allocated to multiple participants (used when teams don't
+  // divide evenly across the pool and we duplicate some to even things out).
+  @@unique([drawId, teamId, participantId])
   @@index([tournamentId])
   @@index([participantId])
+  @@index([drawId, teamId])
 }
 
 // --- Draws (verifiable) ------------------------------------------------
