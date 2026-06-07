@@ -3,6 +3,35 @@ import type { MatchStage, MatchStatus } from "@prisma/client";
 
 const BASE = "https://api.football-data.org/v4";
 
+// Hard cap on outbound API requests across the whole process.
+// Default = 10 calls per 60s rolling window. Overridable via env so paid
+// tiers can lift it; the floor stays generous enough that legitimate
+// admin clicks never block.
+const RATE_LIMIT = Math.max(
+  1,
+  parseInt(process.env.FOOTBALL_API_MAX_PER_MIN ?? "10", 10) || 10
+);
+const recentCalls: number[] = [];
+
+async function rateLimit(): Promise<void> {
+  while (true) {
+    const now = Date.now();
+    while (recentCalls.length > 0 && recentCalls[0] < now - 60_000) {
+      recentCalls.shift();
+    }
+    if (recentCalls.length < RATE_LIMIT) {
+      recentCalls.push(now);
+      return;
+    }
+    // Wait just past the moment the oldest call ages out.
+    const waitMs = Math.max(50, recentCalls[0] + 60_000 - now + 50);
+    console.log(
+      `[football-data-org] rate-limit hit (${RATE_LIMIT}/min) — sleeping ${Math.round(waitMs)}ms`
+    );
+    await new Promise((r) => setTimeout(r, waitMs));
+  }
+}
+
 // football-data.org stage names → our enum
 function mapStage(stage: string): MatchStage {
   switch (stage) {
@@ -80,6 +109,7 @@ export class FootballDataOrgProvider implements FootballProvider {
   constructor(private readonly apiKey: string) {}
 
   private async get<T>(path: string): Promise<T> {
+    await rateLimit();
     const res = await fetch(`${BASE}${path}`, {
       headers: { "X-Auth-Token": this.apiKey },
       // Always grab fresh data — sync job already cadences requests.

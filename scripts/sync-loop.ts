@@ -25,15 +25,16 @@ async function tick() {
     where: { status: { in: ["DRAW_READY", "LIVE"] } },
     select: { id: true, slug: true, name: true, status: true }
   });
-  if (tournaments.length === 0) return;
+  if (tournaments.length === 0) {
+    console.log("[sync-loop] tick — no active tournaments");
+    return;
+  }
   for (const t of tournaments) {
     try {
       const report = await syncTournament(t.id);
-      if (report.matchesUpserted > 0 || report.scoreEventsCreated > 0) {
-        console.log(
-          `[sync-loop] ${t.name}: matches=${report.matchesUpserted} score-events=${report.scoreEventsCreated}${report.championDecided ? " · CHAMPION" : ""}`
-        );
-      }
+      console.log(
+        `[sync-loop] tick ${t.name}: matches=${report.matchesUpserted} new-events=${report.scoreEventsCreated}${report.championDecided ? " · CHAMPION CROWNED" : ""}`
+      );
       // Promote DRAW_READY → LIVE once we see any match status from the API,
       // and LIVE → COMPLETED once a champion is decided.
       if (t.status === "DRAW_READY" && report.matchesUpserted > 0) {
@@ -41,6 +42,7 @@ async function tick() {
           where: { id: t.id },
           data: { status: "LIVE" }
         });
+        console.log(`[sync-loop] ${t.name}: promoted to LIVE`);
       }
       if (report.championDecided) {
         await prisma.tournament.update({
