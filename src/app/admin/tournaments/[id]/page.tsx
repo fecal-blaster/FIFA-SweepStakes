@@ -10,6 +10,7 @@ import { DangerZone } from "@/components/danger-zone";
 import { BulkImport } from "@/components/bulk-import";
 import { MatchOverride } from "@/components/match-override";
 import { DiscordConfig } from "@/components/discord-config";
+import { TeamTierEditor } from "@/components/team-tier-editor";
 import type { ScoringRules } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
@@ -106,23 +107,24 @@ export default async function AdminTournamentPage({ params }: { params: { id: st
             )}
           </ul>
         </Card>
-        <Card>
-          <h2 className="text-lg font-semibold text-white">Teams ({t.teams.length})</h2>
-          {t.teams.length === 0 ? (
-            <p className="text-sm text-pitch-700/70 mt-2">
+        {t.teams.length === 0 ? (
+          <Card>
+            <h2 className="text-lg font-semibold text-white">Teams</h2>
+            <p className="text-sm text-white/55 mt-2">
               No teams loaded. Use the controls above to sync from the football provider.
             </p>
-          ) : (
-            <ul className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5">
-              {t.teams.map((team) => (
-                <li key={team.id} className="text-sm text-white flex justify-between">
-                  <span>{team.name}</span>
-                  <span className="text-pitch-700/70">T{team.tier}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+          </Card>
+        ) : (
+          <TeamTierEditor
+            tournamentId={t.id}
+            teams={t.teams.map((team) => ({
+              id: team.id,
+              name: team.name,
+              code: team.code,
+              tier: team.tier
+            }))}
+          />
+        )}
       </section>
 
       {active && (
