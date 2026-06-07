@@ -21,7 +21,12 @@ export async function GET(
         mode: draw.mode,
         seedSecret: draw.seedSecret,
         participants: t.participants.map((p) => ({ id: p.id, name: p.name })),
-        teams: t.teams.map((te) => ({ id: te.id, name: te.name, tier: te.tier })),
+        teams: t.teams.map((te) => ({
+          id: te.id,
+          name: te.name,
+          tier: te.tier,
+          rankingPoints: te.rankingPoints
+        })),
         coOccurrence: storedCo
       },
       draw.verifyHash

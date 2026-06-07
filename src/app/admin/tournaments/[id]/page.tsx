@@ -121,7 +121,8 @@ export default async function AdminTournamentPage({ params }: { params: { id: st
               id: team.id,
               name: team.name,
               code: team.code,
-              tier: team.tier
+              tier: team.tier,
+              rankingPoints: team.rankingPoints
             }))}
           />
         )}

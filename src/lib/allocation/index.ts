@@ -11,8 +11,12 @@ export type AllocationParticipant = {
 export type AllocationTeam = {
   id: string;
   name: string;
-  /** Strength tier — 1 is strongest. Ignored in PURE_RANDOM mode. */
+  /** Strength tier — 1 is strongest. Used as a coarse pot for the balanced
+   *  draw and as fallback strength when rankingPoints is missing. */
   tier: number;
+  /** FIFA-style numeric ranking. When present (and > 0), this is the source
+   *  of truth for strength balance. */
+  rankingPoints?: number;
 };
 
 /** Pair of team IDs that share a fixture. Order doesn't matter — we sort them
@@ -61,10 +65,18 @@ export function planDistribution(numTeams: number, numParticipants: number): Dis
   return { teamsPerParticipant, duplicatesNeeded, totalSlots };
 }
 
-/** Tier-derived strength used by the balancer. Lower tier = higher value.
- *  Returns roughly: tier 1 ≈ 8.0, tier 2 ≈ 5.2, tier 3 ≈ 2.8, tier 4 ≈ 1.0. */
-export function teamStrength(tier: number): number {
-  const t = Math.max(1, tier);
+/** Strength used by the balancer.
+ *  - When `rankingPoints` is provided (FIFA-style score), it's used directly,
+ *    rescaled into a smaller numeric range so the math stays well-conditioned.
+ *  - Otherwise we fall back to a tier-derived value: tier 1 ≈ 8.0, tier 4 ≈ 1.0.
+ *  Either way, "more is stronger". */
+export function teamStrength(input: { tier: number; rankingPoints?: number | null }): number {
+  if (input.rankingPoints && input.rankingPoints > 0) {
+    // FIFA ranks range roughly 1100–1900. Subtract a floor + scale so a top
+    // side ends up ~9 and a bottom side ~1 — same ballpark as tier-derived.
+    return Math.max(0.5, (input.rankingPoints - 1000) / 100);
+  }
+  const t = Math.max(1, input.tier);
   return Math.pow(Math.max(0.5, 5 - t), 1.5);
 }
 
@@ -77,6 +89,10 @@ function canonicalParticipants(ps: AllocationParticipant[]): AllocationParticipa
 function canonicalTeams(ts: AllocationTeam[]): AllocationTeam[] {
   return ts.slice().sort((a, b) => a.id.localeCompare(b.id));
 }
+
+// Kept as a public helper for tests / external scripts; not used internally
+// since the two-pass allocator no longer expands the deal list up-front.
+void buildDealList;
 
 function canonicalAssignments(a: Assignment[]): Assignment[] {
   return a
@@ -105,7 +121,12 @@ export function computeInputDigest(
   const snapshot = {
     mode: input.mode,
     participants: canonicalParticipants(input.participants).map((p) => ({ id: p.id, name: p.name })),
-    teams: canonicalTeams(input.teams).map((t) => ({ id: t.id, name: t.name, tier: t.tier })),
+    teams: canonicalTeams(input.teams).map((t) => ({
+      id: t.id,
+      name: t.name,
+      tier: t.tier,
+      rankingPoints: t.rankingPoints ?? null
+    })),
     coOccurrence: canonicalCoOccurrence(input.coOccurrence)
   };
   return sha256Hex(JSON.stringify(snapshot));
@@ -150,17 +171,22 @@ void pickNextParticipant;
 function allocatePureRandom(input: AllocationInput, prng: SeededPrng): Assignment[] {
   const teams = canonicalTeams(input.teams);
   const participants = canonicalParticipants(input.participants);
-  // Pad with duplicates so everyone gets the same team count.
-  const expanded = buildDealList(teams, participants.length, prng);
-  const shuffledTeams = prng.shuffle(expanded);
+  const target = Math.ceil(teams.length / participants.length);
   const counts = new Map<string, number>();
   const bag = new Map<string, Set<string>>();
+  const sharedCount = new Map<string, number>();
+  const teamOwners = new Map<string, string[]>();
   for (const p of participants) {
     counts.set(p.id, 0);
     bag.set(p.id, new Set());
+    sharedCount.set(p.id, 0);
   }
-  for (const team of shuffledTeams) {
-    const eligible = participants.filter((p) => !bag.get(p.id)!.has(team.id));
+
+  // Pass 1: deal originals in random order, no duplicates.
+  for (const team of prng.shuffle(teams)) {
+    const eligible = participants.filter(
+      (p) => !bag.get(p.id)!.has(team.id) && (counts.get(p.id) ?? 0) < target
+    );
     let min = Infinity;
     for (const p of eligible) {
       const c = counts.get(p.id) ?? 0;
@@ -170,7 +196,36 @@ function allocatePureRandom(input: AllocationInput, prng: SeededPrng): Assignmen
     const chosen = candidates[prng.nextInt(candidates.length)];
     bag.get(chosen.id)!.add(team.id);
     counts.set(chosen.id, (counts.get(chosen.id) ?? 0) + 1);
+    teamOwners.set(team.id, [chosen.id]);
   }
+
+  // Pass 2: deal duplicates to shorts, sourced preferentially from sharedCount=0 owners.
+  const shorts = participants.filter((p) => (counts.get(p.id) ?? 0) < target);
+  for (const short of prng.shuffle(shorts)) {
+    const candidates = teams.filter(
+      (t) => !bag.get(short.id)!.has(t.id) && (teamOwners.get(t.id)?.length ?? 0) >= 1
+    );
+    let minOwnerShared = Infinity;
+    const ownerSharedFor = new Map<string, number>();
+    for (const t of candidates) {
+      const owners = teamOwners.get(t.id) ?? [];
+      const minS = Math.min(...owners.map((o) => sharedCount.get(o) ?? 0));
+      ownerSharedFor.set(t.id, minS);
+      if (minS < minOwnerShared) minOwnerShared = minS;
+    }
+    const pool = candidates.filter((t) => ownerSharedFor.get(t.id) === minOwnerShared);
+    const chosen = pool[prng.nextInt(pool.length)];
+    const owners = teamOwners.get(chosen.id)!;
+    bag.get(short.id)!.add(chosen.id);
+    counts.set(short.id, (counts.get(short.id) ?? 0) + 1);
+    if (owners.length === 1) {
+      const [first] = owners;
+      sharedCount.set(first, (sharedCount.get(first) ?? 0) + 1);
+    }
+    sharedCount.set(short.id, (sharedCount.get(short.id) ?? 0) + 1);
+    owners.push(short.id);
+  }
+
   return participants.map((p) => ({ participantId: p.id, teamIds: [...bag.get(p.id)!] }));
 }
 
@@ -207,15 +262,24 @@ function buildDealList(teams: AllocationTeam[], numParticipants: number, prng: S
 function allocateBalanced(input: AllocationInput, prng: SeededPrng): Assignment[] {
   const teams = canonicalTeams(input.teams);
   const participants = canonicalParticipants(input.participants);
+  const target = Math.ceil(teams.length / participants.length);
+  const totalSlots = target * participants.length;
+  const duplicatesNeeded = totalSlots - teams.length;
+
+  const teamById = new Map(teams.map((t) => [t.id, t]));
   const counts = new Map<string, number>();
   const strengths = new Map<string, number>();
+  const sharedCount = new Map<string, number>();
   const bag = new Map<string, Set<string>>();
+  // teamId → ordered list of participant IDs (first allocation = original).
+  const teamOwners = new Map<string, string[]>();
   for (const p of participants) {
     counts.set(p.id, 0);
     strengths.set(p.id, 0);
+    sharedCount.set(p.id, 0);
     bag.set(p.id, new Set());
   }
-  // Build the fixture pair index for clash-avoidance, if we have one.
+
   const coSet = new Set<string>();
   if (input.coOccurrence) {
     for (const [a, b] of input.coOccurrence) coSet.add(pairKey(a, b));
@@ -228,52 +292,43 @@ function allocateBalanced(input: AllocationInput, prng: SeededPrng): Assignment[
     return c;
   };
 
-  // Expand the deal list with duplicates so every participant ends up with
-  // the same count. Duplicates are spread across tiers for strength balance.
-  const expanded = buildDealList(teams, participants.length, prng);
+  const allTeamStrengthTotal = teams.reduce((s, t) => s + teamStrength(t), 0);
+  const targetStrengthPerPlayer = (allTeamStrengthTotal * target) / teams.length;
 
-  // Group the expanded list by tier so we deal one tier at a time. Duplicates
-  // sit in the same tier as the original.
+  // ---- PASS 1: deal each original team exactly once, balanced.
+  // Group teams by tier in ascending order (1 = strongest first).
   const tiers = new Map<number, AllocationTeam[]>();
-  for (const t of expanded) {
+  for (const t of teams) {
     if (!tiers.has(t.tier)) tiers.set(t.tier, []);
     tiers.get(t.tier)!.push(t);
   }
   const orderedTiers = [...tiers.keys()].sort((a, b) => a - b);
 
-  // Running totals to drive strength balance.
-  const targetStrengthPerPlayer = (() => {
-    let totalStrength = 0;
-    for (const t of expanded) totalStrength += teamStrength(t.tier);
-    return totalStrength / participants.length;
-  })();
-
   for (const tier of orderedTiers) {
     const shuffled = prng.shuffle(tiers.get(tier)!);
     const tierCounts = new Map<string, number>(participants.map((p) => [p.id, 0]));
     for (const team of shuffled) {
-      // Step 0: a participant can't own the same team twice. Filter out anyone
-      // who already has this team.
-      const eligible = participants.filter((p) => !bag.get(p.id)!.has(team.id));
-      if (eligible.length === 0) {
-        // Pathological: should never happen given duplicates <= participants - 1.
-        throw new Error("No eligible participant for team " + team.id);
-      }
-      // Step 1: tied on minimum overall count.
+      const eligible = participants.filter(
+        (p) => !bag.get(p.id)!.has(team.id) && (counts.get(p.id) ?? 0) < target
+      );
+      if (eligible.length === 0) throw new Error("No eligible participant for " + team.id);
+      // Min overall count.
       let minOverall = Infinity;
       for (const p of eligible) {
         const c = counts.get(p.id) ?? 0;
         if (c < minOverall) minOverall = c;
       }
       const overallCandidates = eligible.filter((p) => (counts.get(p.id) ?? 0) === minOverall);
-      // Step 2: tied on minimum tier count.
+      // Min tier count.
       let minTier = Infinity;
       for (const p of overallCandidates) {
         const c = tierCounts.get(p.id) ?? 0;
         if (c < minTier) minTier = c;
       }
-      const tierCandidates = overallCandidates.filter((p) => (tierCounts.get(p.id) ?? 0) === minTier);
-      // Step 3: tied on minimum self-clash count.
+      const tierCandidates = overallCandidates.filter(
+        (p) => (tierCounts.get(p.id) ?? 0) === minTier
+      );
+      // Min self-clash.
       let minClash = Infinity;
       const candidateClashes = new Map<string, number>();
       for (const p of tierCandidates) {
@@ -284,9 +339,7 @@ function allocateBalanced(input: AllocationInput, prng: SeededPrng): Assignment[
       const clashCandidates = tierCandidates.filter(
         (p) => candidateClashes.get(p.id) === minClash
       );
-      // Step 4 (new): tied on max gap below target pool strength. Picks the
-      // participant whose running strength is furthest below the ideal —
-      // keeps everyone's combined ranking flat.
+      // Strength: furthest below the per-player target.
       let maxGap = -Infinity;
       const gaps = new Map<string, number>();
       for (const p of clashCandidates) {
@@ -294,16 +347,90 @@ function allocateBalanced(input: AllocationInput, prng: SeededPrng): Assignment[
         gaps.set(p.id, gap);
         if (gap > maxGap) maxGap = gap;
       }
-      // Use a small epsilon when comparing floats so PRNG can still kick in.
-      const finalCandidates = clashCandidates.filter((p) => (gaps.get(p.id) ?? 0) >= maxGap - 0.0001);
+      const finalCandidates = clashCandidates.filter(
+        (p) => (gaps.get(p.id) ?? 0) >= maxGap - 0.0001
+      );
       const chosen = finalCandidates[prng.nextInt(finalCandidates.length)];
       bag.get(chosen.id)!.add(team.id);
       counts.set(chosen.id, (counts.get(chosen.id) ?? 0) + 1);
       tierCounts.set(chosen.id, (tierCounts.get(chosen.id) ?? 0) + 1);
-      strengths.set(chosen.id, (strengths.get(chosen.id) ?? 0) + teamStrength(team.tier));
+      strengths.set(chosen.id, (strengths.get(chosen.id) ?? 0) + teamStrength(team));
+      teamOwners.set(team.id, [chosen.id]);
     }
   }
-  return participants.map((p) => ({ participantId: p.id, teamIds: [...bag.get(p.id)!] }));
+
+  // ---- PASS 2: deal duplicates so everyone reaches `target`. Prefer to source
+  // each duplicate from a player whose sharedCount is still 0, so the cost of
+  // sharing spreads across the room rather than landing on the same person
+  // twice. Receivers (the "short" players) get processed in random order.
+  if (duplicatesNeeded > 0) {
+    const shorts = participants.filter((p) => (counts.get(p.id) ?? 0) < target);
+    for (const short of prng.shuffle(shorts)) {
+      // Eligible source teams: anything the short doesn't already own and
+      // that already has at least one owner.
+      const candidates = teams.filter(
+        (t) => !bag.get(short.id)!.has(t.id) && (teamOwners.get(t.id)?.length ?? 0) >= 1
+      );
+      if (candidates.length === 0) throw new Error("No duplicate candidates for " + short.id);
+
+      // Tie-breaker 1: prefer teams whose existing owner has sharedCount = 0,
+      // so we don't pile two shared teams onto the same person.
+      let minOwnerShared = Infinity;
+      const ownerSharedFor = new Map<string, number>();
+      for (const t of candidates) {
+        const owners = teamOwners.get(t.id) ?? [];
+        const minOwnerS = Math.min(...owners.map((o) => sharedCount.get(o) ?? 0));
+        ownerSharedFor.set(t.id, minOwnerS);
+        if (minOwnerS < minOwnerShared) minOwnerShared = minOwnerS;
+      }
+      let pool = candidates.filter((t) => ownerSharedFor.get(t.id) === minOwnerShared);
+
+      // Tie-breaker 2: minimum clash with this short's existing teams.
+      let minC = Infinity;
+      const clashFor = new Map<string, number>();
+      for (const t of pool) {
+        const c = clashCount(short.id, t.id);
+        clashFor.set(t.id, c);
+        if (c < minC) minC = c;
+      }
+      pool = pool.filter((t) => clashFor.get(t.id) === minC);
+
+      // Tie-breaker 3: pick the team whose strength best closes the gap to
+      // this short's target — keeps everyone's pool strength flat.
+      const currentStrength = strengths.get(short.id) ?? 0;
+      let bestStrength = Infinity;
+      const strengthDeltaFor = new Map<string, number>();
+      for (const t of pool) {
+        const delta = Math.abs(targetStrengthPerPlayer - (currentStrength + teamStrength(t)));
+        strengthDeltaFor.set(t.id, delta);
+        if (delta < bestStrength) bestStrength = delta;
+      }
+      pool = pool.filter((t) => (strengthDeltaFor.get(t.id) ?? Infinity) <= bestStrength + 0.0001);
+
+      const chosen = pool[prng.nextInt(pool.length)];
+      const owners = teamOwners.get(chosen.id)!;
+      bag.get(short.id)!.add(chosen.id);
+      counts.set(short.id, (counts.get(short.id) ?? 0) + 1);
+      strengths.set(short.id, (strengths.get(short.id) ?? 0) + teamStrength(chosen));
+      // When a team transitions from 1 → 2 owners, both owners now have a
+      // shared team. The receiver always gets +1; the first owner only gets
+      // +1 the *first* time their team becomes shared.
+      if (owners.length === 1) {
+        const [first] = owners;
+        sharedCount.set(first, (sharedCount.get(first) ?? 0) + 1);
+      }
+      sharedCount.set(short.id, (sharedCount.get(short.id) ?? 0) + 1);
+      owners.push(short.id);
+    }
+  }
+
+  // Silence unused-variable warnings for helpers retained for clarity.
+  void teamById;
+
+  return participants.map((p) => ({
+    participantId: p.id,
+    teamIds: [...bag.get(p.id)!]
+  }));
 }
 
 // --- public API -------------------------------------------------------------

@@ -10,6 +10,7 @@ export type ProviderTeam = {
   code?: string;
   crestUrl?: string;
   tier?: number; // 1 = strongest pot, when the provider exposes seeding
+  rankingPoints?: number; // FIFA-world-ranking-style score
 };
 
 export type ProviderMatch = {

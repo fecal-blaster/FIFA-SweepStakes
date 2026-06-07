@@ -97,8 +97,13 @@ model Team {
   code         String? // FIFA 3-letter code
   flagUrl      String?
   crestUrl     String?
-  // 1 = strongest pot (lower number = stronger). Used by balanced draw.
+  // 1 = strongest pot (lower number = stronger). Auto-derived from
+  // rankingPoints quartiles by the admin "Recompute tiers" action, but can
+  // also be set manually.
   tier         Int     @default(1)
+  // FIFA-world-ranking-style score, drives the strength balancer in the draw
+  // and the pool-strength % shown on the leaderboard. Higher = stronger.
+  rankingPoints Int    @default(1500)
 
   tournament  Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   allocations TeamAllocation[]

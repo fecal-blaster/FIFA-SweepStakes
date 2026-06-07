@@ -2,20 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, Flag, SectionHeader, cn } from "@/components/ui";
+import { Button, Card, Flag, SectionHeader, cn } from "@/components/ui";
 
 type TeamRow = {
   id: string;
   name: string;
   code: string | null;
   tier: number;
-};
-
-const TIER_LABELS: Record<number, string> = {
-  1: "T1 · Top contenders",
-  2: "T2 · Strong sides",
-  3: "T3 · Outsiders",
-  4: "T4 · Long shots"
+  rankingPoints: number;
 };
 
 const TIER_COLOUR: Record<number, string> = {
@@ -34,20 +28,22 @@ export function TeamTierEditor({
 }) {
   const router = useRouter();
   const [teams, setTeams] = useState<TeamRow[]>(initialTeams);
-  const [sort, setSort] = useState<"name" | "tier">("tier");
+  const [sort, setSort] = useState<"ranking" | "name" | "tier">("ranking");
   const [filter, setFilter] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [recomputing, setRecomputing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
 
-  const counts = useMemo(() => {
-    const c: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
-    for (const t of teams) c[t.tier] = (c[t.tier] ?? 0) + 1;
-    return c;
+  const stats = useMemo(() => {
+    if (teams.length === 0) return null;
+    const pts = teams.map((t) => t.rankingPoints).sort((a, b) => a - b);
+    const median = pts[Math.floor(pts.length / 2)];
+    const mean = Math.round(pts.reduce((s, x) => s + x, 0) / pts.length);
+    const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    for (const t of teams) counts[t.tier] = (counts[t.tier] ?? 0) + 1;
+    return { min: pts[0], max: pts[pts.length - 1], median, mean, counts };
   }, [teams]);
-
-  // Ideal split for a 32-team or 48-team field is even buckets of 8 or 12.
-  // We approximate "ideal per tier" as round(total/4) for a quick guide rail.
-  const idealPerTier = Math.round(teams.length / 4);
 
   const visible = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -56,28 +52,25 @@ export function TeamTierEditor({
     );
     return list.sort((a, b) => {
       if (sort === "name") return a.name.localeCompare(b.name);
-      return a.tier - b.tier || a.name.localeCompare(b.name);
+      if (sort === "tier") return a.tier - b.tier || b.rankingPoints - a.rankingPoints;
+      return b.rankingPoints - a.rankingPoints || a.name.localeCompare(b.name);
     });
   }, [teams, sort, filter]);
 
-  async function setTier(id: string, tier: number) {
+  async function patchTeam(id: string, body: Partial<TeamRow>) {
     setErr(null);
     setSavingId(id);
-    // Optimistic update so the UI feels instant.
     const before = teams;
-    setTeams((prev) => prev.map((t) => (t.id === id ? { ...t, tier } : t)));
+    setTeams((prev) => prev.map((t) => (t.id === id ? { ...t, ...body } : t)));
     try {
-      const res = await fetch(
-        `/api/admin/tournaments/${tournamentId}/teams/${id}`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ tier })
-        }
-      );
+      const res = await fetch(`/api/admin/tournaments/${tournamentId}/teams/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body)
+      });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? `Failed (${res.status})`);
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error ?? `Failed (${res.status})`);
       }
       router.refresh();
     } catch (e) {
@@ -88,45 +81,78 @@ export function TeamTierEditor({
     }
   }
 
+  async function recomputeTiers() {
+    setRecomputing(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await fetch(
+        `/api/admin/tournaments/${tournamentId}/teams/recompute-tiers`,
+        { method: "POST" }
+      );
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error ?? `Failed (${res.status})`);
+      }
+      const body = await res.json();
+      setMsg(`Recomputed tiers — ${body.updated} of ${body.total} teams changed.`);
+      // Recompute locally too so the UI updates without a full refresh roundtrip.
+      const sortedByRanking = [...teams].sort((a, b) => b.rankingPoints - a.rankingPoints);
+      setTeams(
+        sortedByRanking.map((t, i) => ({
+          ...t,
+          tier: Math.min(4, Math.max(1, Math.floor((i / sortedByRanking.length) * 4) + 1))
+        }))
+      );
+      router.refresh();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setRecomputing(false);
+    }
+  }
+
   return (
     <Card>
       <div className="flex items-start justify-between flex-wrap gap-2">
-        <SectionHeader eyebrow="Team strength" title="Tier editor" />
-        <div className="text-xs text-white/50">
-          {teams.length} teams · ideal split ≈ {idealPerTier} per tier
-        </div>
+        <SectionHeader eyebrow="Team strength" title="Ranking points" />
+        <Button variant="ghost" size="sm" onClick={recomputeTiers} disabled={recomputing}>
+          {recomputing ? "Recomputing…" : "Recompute tiers from rankings"}
+        </Button>
       </div>
 
       <p className="text-sm text-white/65 mb-4">
-        Sort the teams into four strength tiers before running the draw. Tier 1
-        is the strongest pot, Tier 4 the weakest. Even buckets give the
-        cleanest strength balance.
+        Set each team's FIFA world ranking points — the strength balancer uses
+        these directly when drawing. Tiers are derived in quartiles (top 25% =
+        T1) and used for the per-tier pot in balanced mode.
       </p>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-        {[1, 2, 3, 4].map((tier) => {
-          const c = counts[tier] ?? 0;
-          const off = Math.abs(c - idealPerTier);
-          return (
+      {stats && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+          <Stat label="Min" value={stats.min.toLocaleString()} />
+          <Stat label="Median" value={stats.median.toLocaleString()} />
+          <Stat label="Mean" value={stats.mean.toLocaleString()} />
+          <Stat label="Max" value={stats.max.toLocaleString()} />
+        </div>
+      )}
+
+      {stats && (
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          {[1, 2, 3, 4].map((tier) => (
             <div
               key={tier}
-              className={cn(
-                "rounded-lg ring-1 px-3 py-2 bg-ink-900/60",
-                off === 0
-                  ? "ring-lime-500/30"
-                  : off <= 1
-                    ? "ring-white/10"
-                    : "ring-gold-500/30"
-              )}
+              className="rounded-lg bg-ink-900/60 ring-1 ring-white/8 px-3 py-2"
             >
               <div className={cn("text-[10px] uppercase tracking-[0.18em]", TIER_COLOUR[tier])}>
-                {TIER_LABELS[tier]}
+                T{tier}
               </div>
-              <div className="scoreboard-num text-xl text-white mt-0.5">{c}</div>
+              <div className="scoreboard-num text-xl text-white mt-0.5">
+                {stats.counts[tier] ?? 0}
+              </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <input
@@ -137,55 +163,56 @@ export function TeamTierEditor({
           className="flex-1 min-w-[180px] rounded-lg bg-ink-900/80 ring-1 ring-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-lime-500/40"
         />
         <div className="inline-flex rounded-lg ring-1 ring-white/10 overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setSort("tier")}
-            className={cn(
-              "px-3 py-2 text-xs",
-              sort === "tier" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"
-            )}
-          >
-            By tier
-          </button>
-          <button
-            type="button"
-            onClick={() => setSort("name")}
-            className={cn(
-              "px-3 py-2 text-xs",
-              sort === "name" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"
-            )}
-          >
-            By name
-          </button>
+          {(["ranking", "tier", "name"] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSort(s)}
+              className={cn(
+                "px-3 py-2 text-xs capitalize",
+                sort === s ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"
+              )}
+            >
+              By {s}
+            </button>
+          ))}
         </div>
       </div>
 
       {err && <p className="mb-2 text-sm text-live-400">{err}</p>}
+      {msg && <p className="mb-2 text-sm text-lime-400">{msg}</p>}
 
-      <ul className="grid sm:grid-cols-2 gap-1.5 max-h-[480px] overflow-y-auto pr-1">
+      <ul className="grid sm:grid-cols-2 gap-1.5 max-h-[520px] overflow-y-auto pr-1">
         {visible.map((t) => (
           <li
             key={t.id}
-            className="flex items-center gap-3 rounded-lg bg-ink-900/60 ring-1 ring-white/8 px-3 py-1.5"
+            className="flex items-center gap-2 rounded-lg bg-ink-900/60 ring-1 ring-white/8 px-3 py-1.5"
           >
             <Flag code={t.code} size="md" />
             <span className="flex-1 min-w-0 truncate text-sm text-white">{t.name}</span>
             <span className={cn("text-[10px] uppercase tracking-[0.18em] w-6 text-right", TIER_COLOUR[t.tier])}>
               T{t.tier}
             </span>
-            <select
-              value={t.tier}
+            <input
+              type="number"
+              min={0}
+              max={3000}
+              step={1}
+              value={t.rankingPoints}
               disabled={savingId === t.id}
-              onChange={(e) => setTier(t.id, parseInt(e.target.value, 10))}
-              className="rounded-md bg-ink-900/80 ring-1 ring-white/10 px-2 py-1 text-sm text-white focus:outline-none focus:ring-lime-500/40"
-              aria-label={`Tier for ${t.name}`}
-            >
-              {[1, 2, 3, 4].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
+              onChange={(e) => {
+                const v = parseInt(e.target.value || "0", 10);
+                setTeams((prev) => prev.map((x) => (x.id === t.id ? { ...x, rankingPoints: v } : x)));
+              }}
+              onBlur={(e) => {
+                const v = parseInt(e.target.value || "0", 10);
+                if (v !== initialTeams.find((x) => x.id === t.id)?.rankingPoints) {
+                  patchTeam(t.id, { rankingPoints: v });
+                }
+              }}
+              className="w-20 rounded-md bg-ink-900/80 ring-1 ring-white/10 px-2 py-1 text-right scoreboard-num text-lime-400 text-sm focus:outline-none focus:ring-lime-500/40"
+              aria-label={`Ranking points for ${t.name}`}
+            />
           </li>
         ))}
       </ul>
@@ -193,5 +220,14 @@ export function TeamTierEditor({
         <p className="text-sm text-white/50">No teams match that filter.</p>
       )}
     </Card>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-ink-900/60 ring-1 ring-white/8 px-3 py-2">
+      <div className="text-[10px] uppercase tracking-[0.18em] text-white/45">{label}</div>
+      <div className="scoreboard-num text-xl text-white mt-0.5">{value}</div>
+    </div>
   );
 }

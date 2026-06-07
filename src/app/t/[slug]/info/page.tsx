@@ -45,27 +45,25 @@ export default async function TournamentInfoPage({ params }: { params: { slug: s
         {t.drawMode === "BALANCED" ? (
           <div className="space-y-3 text-sm text-white/75 leading-relaxed">
             <p>
-              Each team has a <span className="text-lime-400">strength rating</span>{" "}
-              from its tier. The draw deals one team at a time, narrowing
-              candidates through four tie-breakers in this order:
+              Each team has a{" "}
+              <span className="text-lime-400">FIFA ranking score</span>. The
+              draw runs in two passes — first it deals every team once,
+              narrowing candidates through these tie-breakers in order:
             </p>
             <ol className="list-decimal pl-5 space-y-1 text-white/70">
-              <li>Fewest teams overall</li>
+              <li>Fewest teams so far</li>
               <li>Fewest teams from this tier</li>
-              <li>Fewest of your existing teams that this one will play in the group stage</li>
-              <li>
-                <span className="text-lime-400">Furthest below the fair pool strength %</span>
-                {" "}— keeps everyone's combined ranking flat
-              </li>
+              <li>Fewest of your existing teams that this one would play in the group stage</li>
+              <li>Furthest below the fair pool-strength share</li>
             </ol>
             <p>
-              If there's still more than one candidate, the PRNG picks
-              between them. When the team count doesn't divide evenly across
-              the pool, some teams are{" "}
-              <span className="text-lime-400">duplicated</span> so everyone
-              ends up with the same number — both owners earn the team's
-              points equally. Duplicates are spread across tiers so the
-              strength balance holds.
+              If the team count doesn't divide evenly, a second pass deals{" "}
+              <span className="text-lime-400">duplicates</span> so everyone
+              ends up with the same number of teams. Each duplicate is
+              sourced — where possible — from a player who hasn't shared a
+              team yet, so the sharing burden spreads across the room rather
+              than landing twice on the same person. Both owners earn the
+              team's points equally.
             </p>
           </div>
         ) : (

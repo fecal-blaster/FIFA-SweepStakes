@@ -6,7 +6,8 @@ import { requireAdmin } from "@/lib/session";
 const PatchSchema = z.object({
   tier: z.number().int().min(1).max(8).optional(),
   name: z.string().min(1).max(60).optional(),
-  code: z.string().min(2).max(4).optional()
+  code: z.string().min(2).max(4).optional(),
+  rankingPoints: z.number().int().min(0).max(3000).optional()
 });
 
 export async function PATCH(

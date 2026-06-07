@@ -18,6 +18,7 @@ export type TeamBreakdown = {
   code: string | null;
   flagUrl: string | null;
   tier: number;
+  rankingPoints: number;
   /** Other participants who also hold this team (shared duplicate). */
   sharedWith: { id: string; name: string }[];
   points: number;
@@ -145,15 +146,18 @@ export async function computeLeaderboard(tournamentId: string): Promise<Leaderbo
           code: a.team.code,
           flagUrl: a.team.flagUrl,
           tier: a.team.tier,
-          sharedWith: (ownersByTeam.get(a.team.id) ?? [])
-            .filter((o) => o.id !== p.id),
+          rankingPoints: a.team.rankingPoints,
+          sharedWith: (ownersByTeam.get(a.team.id) ?? []).filter((o) => o.id !== p.id),
           points,
           events
         };
       });
 
       const points = teams.reduce((sum, t) => sum + t.points, 0);
-      const poolStrength = teams.reduce((s, t) => s + teamStrength(t.tier), 0);
+      const poolStrength = teams.reduce(
+        (s, t) => s + teamStrength({ tier: t.tier, rankingPoints: t.rankingPoints }),
+        0
+      );
       return { participantId: p.id, name: p.name, paid: p.paid, teams, points, poolStrength };
     }
   );

@@ -29,7 +29,12 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
             code: team.code,
             crestUrl: team.crestUrl,
             // Only set tier if currently the default and provider gave one
-            tier: existing.tier === 1 && team.tier ? team.tier : existing.tier
+            tier: existing.tier === 1 && team.tier ? team.tier : existing.tier,
+            // Same for rankingPoints — only seed it if still on the default 1500
+            rankingPoints:
+              existing.rankingPoints === 1500 && team.rankingPoints
+                ? team.rankingPoints
+                : existing.rankingPoints
           }
         });
         updated++;
@@ -42,7 +47,8 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
             shortName: team.shortName,
             code: team.code,
             crestUrl: team.crestUrl,
-            tier: team.tier ?? 1
+            tier: team.tier ?? 1,
+            rankingPoints: team.rankingPoints ?? 1500
           }
         });
         created++;
