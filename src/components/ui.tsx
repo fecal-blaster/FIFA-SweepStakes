@@ -77,6 +77,18 @@ export function StatTile({
   );
 }
 
+// Friendly labels — the underlying enum stays as-is for compatibility, but
+// "DRAW READY" reads like "ready to draw" which trips people up. The draw has
+// actually happened by this point, hence "Draw complete".
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  REGISTRATION_OPEN: "Registration open",
+  DRAW_READY: "Draw complete",
+  LIVE: "Live",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled"
+};
+
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     DRAFT: "bg-white/5 text-white/60 ring-1 ring-white/10",
@@ -95,7 +107,7 @@ export function StatusBadge({ status }: { status: string }) {
       )}
     >
       {isLive && <span className="live-dot" />}
-      {status.replace(/_/g, " ")}
+      {STATUS_LABELS[status] ?? status.replace(/_/g, " ")}
     </span>
   );
 }
