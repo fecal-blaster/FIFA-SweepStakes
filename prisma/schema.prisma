@@ -137,7 +137,11 @@ model Draw {
   seed          String   // human-readable: e.g. "fifa2026-9a7c4d"
   seedSecret    String   // raw entropy used by PRNG (hex)
   verifyHash    String   // sha256(seed + sortedTeams + sortedParticipants + mode + allocations)
-  inputDigest   String   // sha256 of canonical input snapshot (teams + participants + tiers)
+  inputDigest   String   // sha256 of canonical input snapshot (teams + participants + tiers + fixtures)
+  // Co-occurrence pairs (group-stage fixtures known at draw time) used by the
+  // balanced algorithm to minimise self-clashes. Stored so verification is
+  // reproducible even if the fixture list mutates afterwards.
+  coOccurrenceJson Json?
   createdAt     DateTime @default(now())
   // When superseded by a redraw
   supersededAt  DateTime?

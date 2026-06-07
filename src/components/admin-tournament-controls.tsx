@@ -168,8 +168,19 @@ function formatMsg(name: string, body: { [k: string]: unknown }): string {
     return `Teams synced — created ${body.created}, updated ${body.updated}, total ${body.total}.`;
   }
   if (name === "draw") {
-    const d = (body.draw ?? {}) as { seed?: string; verifyHash?: string };
-    return `Draw complete. Seed ${d.seed}, hash ${d.verifyHash?.slice(0, 16)}…`;
+    const d = (body.draw ?? {}) as {
+      seed?: string;
+      verifyHash?: string;
+      fixturePairs?: number;
+      clashFixtures?: number;
+    };
+    let msg = `Draw complete. Seed ${d.seed}, hash ${d.verifyHash?.slice(0, 16)}…`;
+    if (typeof d.fixturePairs === "number" && d.fixturePairs > 0) {
+      msg += ` · ${d.clashFixtures ?? 0} self-clash${d.clashFixtures === 1 ? "" : "es"} across ${d.fixturePairs} group fixtures`;
+    } else {
+      msg += " · no fixtures loaded yet — sync fixtures first for clash avoidance";
+    }
+    return msg;
   }
   if (name === "sync-fixtures") {
     return `Fixtures synced — ${body.matchesUpserted} matches, ${body.scoreEventsCreated} new score events.`;

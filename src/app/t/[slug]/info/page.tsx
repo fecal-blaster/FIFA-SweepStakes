@@ -50,7 +50,14 @@ export default async function TournamentInfoPage({ params }: { params: { slug: s
               independently with a cryptographically secure PRNG. The system deals
               one team at a time, always to the participant with the{" "}
               <span className="text-lime-400">lowest current count</span> from that
-              tier — with random tie-breaks so it stays unpredictable.
+              tier.
+            </p>
+            <p>
+              When the group-stage fixtures are loaded, the same loop also
+              prefers to deal each team to whoever has the{" "}
+              <span className="text-lime-400">fewest existing teams they'd play</span>.
+              So you're much less likely to end up holding Argentina and Brazil if
+              they're in the same group. Random tie-breaks keep it unpredictable.
             </p>
             <p>
               Result: with 32 teams across 4 tiers and 8 participants, everyone gets

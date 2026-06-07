@@ -15,12 +15,14 @@ export async function GET(
     });
     if (!draw) return notFound("Draw not found");
     const t = draw.tournament;
+    const storedCo = (draw.coOccurrenceJson as [string, string][] | null) ?? undefined;
     const { ok: matches, computed } = verifyAllocation(
       {
         mode: draw.mode,
         seedSecret: draw.seedSecret,
         participants: t.participants.map((p) => ({ id: p.id, name: p.name })),
-        teams: t.teams.map((te) => ({ id: te.id, name: te.name, tier: te.tier }))
+        teams: t.teams.map((te) => ({ id: te.id, name: te.name, tier: te.tier })),
+        coOccurrence: storedCo
       },
       draw.verifyHash
     );

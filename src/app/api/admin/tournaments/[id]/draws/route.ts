@@ -22,7 +22,21 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const input = await parseJson(req, CreateDrawSchema);
     const tournament = await prisma.tournament.findUnique({
       where: { id: params.id },
-      include: { teams: true, participants: true, draws: { where: { isActive: true } } }
+      include: {
+        teams: true,
+        participants: true,
+        draws: { where: { isActive: true } },
+        // Group-stage fixtures known at draw time → clash-avoidance input.
+        // Knockout fixtures depend on group standings so they're unknown here.
+        matches: {
+          where: {
+            stage: "GROUP",
+            homeTeamId: { not: null },
+            awayTeamId: { not: null }
+          },
+          select: { homeTeamId: true, awayTeamId: true }
+        }
+      }
     });
     if (!tournament) throw new ApiError(404, "Tournament not found");
     if (tournament.teams.length === 0) throw new ApiError(409, "No teams configured");
@@ -37,13 +51,28 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const mode = input.mode ?? tournament.drawMode;
 
+    const coOccurrence: [string, string][] = tournament.matches
+      .filter((m): m is { homeTeamId: string; awayTeamId: string } =>
+        Boolean(m.homeTeamId) && Boolean(m.awayTeamId)
+      )
+      .map((m) => [m.homeTeamId, m.awayTeamId] as [string, string]);
+
     const allocationInput: AllocationInput = {
       mode,
       seedSecret: seed.secret,
       participants: tournament.participants.map((p) => ({ id: p.id, name: p.name })),
-      teams: tournament.teams.map((t) => ({ id: t.id, name: t.name, tier: t.tier }))
+      teams: tournament.teams.map((t) => ({ id: t.id, name: t.name, tier: t.tier })),
+      coOccurrence
     };
     const result = runAllocation(allocationInput);
+
+    // Stats for the audit log + admin feedback.
+    let clashFixtures = 0;
+    const teamOwner = new Map<string, string>();
+    for (const a of result.assignments) for (const tid of a.teamIds) teamOwner.set(tid, a.participantId);
+    for (const [h, a] of coOccurrence) {
+      if (teamOwner.get(h) && teamOwner.get(h) === teamOwner.get(a)) clashFixtures++;
+    }
 
     // Persist atomically: deactivate previous draw, write new draw + allocations.
     const draw = await prisma.$transaction(async (tx) => {
@@ -61,6 +90,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           seedSecret: seed.secret,
           verifyHash: result.verifyHash,
           inputDigest: result.inputDigest,
+          coOccurrenceJson: coOccurrence.length > 0 ? (coOccurrence as unknown as object) : undefined,
           isActive: true
         }
       });
@@ -93,7 +123,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         mode,
         seed: seed.display,
         verifyHash: result.verifyHash,
-        redrawReason: input.redrawReason
+        redrawReason: input.redrawReason,
+        fixturePairs: coOccurrence.length,
+        clashFixtures
       }
     });
 
@@ -126,7 +158,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           seedSecret: seed.secret,
           verifyHash: result.verifyHash,
           inputDigest: result.inputDigest,
-          createdAt: draw.createdAt
+          createdAt: draw.createdAt,
+          fixturePairs: coOccurrence.length,
+          clashFixtures
         },
         assignments: result.assignments
       },
