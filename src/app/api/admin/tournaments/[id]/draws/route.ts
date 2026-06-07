@@ -61,7 +61,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       mode,
       seedSecret: seed.secret,
       participants: tournament.participants.map((p) => ({ id: p.id, name: p.name })),
-      teams: tournament.teams.map((t) => ({ id: t.id, name: t.name, tier: t.tier })),
+      teams: tournament.teams.map((t) => ({
+        id: t.id,
+        name: t.name,
+        tier: t.tier,
+        rankingPoints: t.rankingPoints
+      })),
       coOccurrence
     };
     const result = runAllocation(allocationInput);
@@ -99,6 +104,19 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const strengthSpreadPct =
       meanStrength > 0 ? (strengthSpread / meanStrength) * 100 : 0;
 
+    // Snapshot the exact inputs used so verification stays valid even if team
+    // rankings or the participant list are edited after the draw.
+    const teamSnapshot = tournament.teams.map((t) => ({
+      id: t.id,
+      name: t.name,
+      tier: t.tier,
+      rankingPoints: t.rankingPoints
+    }));
+    const participantSnapshot = tournament.participants.map((p) => ({
+      id: p.id,
+      name: p.name
+    }));
+
     // Persist atomically: deactivate previous draw, write new draw + allocations.
     const draw = await prisma.$transaction(async (tx) => {
       if (tournament.draws.length > 0) {
@@ -116,6 +134,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           verifyHash: result.verifyHash,
           inputDigest: result.inputDigest,
           coOccurrenceJson: coOccurrence.length > 0 ? (coOccurrence as unknown as object) : undefined,
+          teamSnapshotJson: teamSnapshot as unknown as object,
+          participantSnapshotJson: participantSnapshot as unknown as object,
           isActive: true
         }
       });
