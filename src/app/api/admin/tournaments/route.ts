@@ -4,7 +4,7 @@ import { handleError, ok, parseJson } from "@/lib/api";
 import { requireAdmin } from "@/lib/session";
 import { inviteCode, slugify } from "@/lib/util";
 import { audit } from "@/lib/audit";
-import { FIFA_RANKINGS } from "@/lib/fifa-rankings";
+import { wc2026Teams } from "@/lib/fifa-rankings";
 
 const CreateSchema = z.object({
   name: z.string().min(1).max(80).trim(),
@@ -45,25 +45,26 @@ export async function POST(req: Request) {
       }
     });
 
-    // Auto-seed the FIFA top 48 (World Cup field size) for any tournament
-    // tagged "WC", with tiers bucketed by ranking quartile. Admin can edit
-    // or wipe via the danger zone if they wanted something else.
+    // Auto-seed the actual 48-team World Cup 2026 field (not "top 48 by
+    // ranking" — that excludes nations like New Zealand who qualified via OFC).
+    // Tiers are bucketed by ranking quartile across the qualified set; admin
+    // can edit ranking points or tiers per team afterwards.
     let seededTeams = 0;
     if (input.competitionCode.toUpperCase() === "WC") {
-      const top48 = FIFA_RANKINGS.slice(0, 48);
+      const field = wc2026Teams().sort((a, b) => b.points - a.points);
       await prisma.team.createMany({
-        data: top48.map((r, i) => ({
+        data: field.map((team, i) => ({
           tournamentId: t.id,
-          externalId: `fifa-${r.code}`,
-          name: r.name,
-          shortName: r.name,
-          code: r.code,
-          tier: Math.min(4, Math.max(1, Math.floor((i / top48.length) * 4) + 1)),
-          rankingPoints: r.points
+          externalId: `fifa-${team.code}`,
+          name: team.name,
+          shortName: team.name,
+          code: team.code,
+          tier: Math.min(4, Math.max(1, Math.floor((i / field.length) * 4) + 1)),
+          rankingPoints: team.points
         })),
         skipDuplicates: true
       });
-      seededTeams = top48.length;
+      seededTeams = field.length;
     }
 
     await audit({

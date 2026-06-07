@@ -101,7 +101,17 @@ export const FIFA_RANKINGS: FifaRankingEntry[] = [
   { rank: 87, code: "EQG", name: "Equatorial Guinea", points: 1371 },
   { rank: 88, code: "GUI", name: "Guinea", points: 1369 },
   { rank: 89, code: "COD", name: "DR Congo", points: 1366 },
-  { rank: 90, code: "MAD", name: "Madagascar", points: 1363 }
+  { rank: 90, code: "MAD", name: "Madagascar", points: 1363 },
+  { rank: 91, code: "CUR", name: "Curaçao", points: 1361 },
+  { rank: 92, code: "SLV", name: "El Salvador", points: 1357 },
+  { rank: 93, code: "NZL", name: "New Zealand", points: 1354 },
+  { rank: 94, code: "HAI", name: "Haiti", points: 1346 },
+  { rank: 95, code: "KAZ", name: "Kazakhstan", points: 1339 },
+  { rank: 96, code: "LAT", name: "Latvia", points: 1335 },
+  { rank: 97, code: "EST", name: "Estonia", points: 1331 },
+  { rank: 98, code: "LBN", name: "Lebanon", points: 1326 },
+  { rank: 99, code: "SUR", name: "Suriname", points: 1322 },
+  { rank: 100, code: "PLE", name: "Palestine", points: 1318 }
 ];
 
 const BY_CODE = new Map(FIFA_RANKINGS.map((r) => [r.code.toUpperCase(), r]));
@@ -116,4 +126,41 @@ export function lookupRanking(code: string | null | undefined): FifaRankingEntry
 export function lookupRankingByName(name: string): FifaRankingEntry | null {
   const target = name.toLowerCase();
   return FIFA_RANKINGS.find((r) => r.name.toLowerCase() === target) ?? null;
+}
+
+/**
+ * The 48 teams qualified for FIFA World Cup 2026. Hosts (CAN/MEX/USA),
+ * UEFA's 16 best, CONMEBOL's six, CAF nine, AFC eight, CONCACAF three plus
+ * hosts, OFC one (New Zealand), and two inter-confederation playoff winners.
+ * Some confederation slots resolve via tie-breakers right up to the draw;
+ * the list below reflects the most current bracket and an admin can swap
+ * teams via the editor if reality shifts. Order is by current FIFA points.
+ */
+export const WC_2026_QUALIFIERS: string[] = [
+  // Top European sides
+  "ESP", "ARG", "FRA", "ENG", "POR", "NED", "BRA", "BEL", "CRO", "ITA", "MAR", "GER",
+  // South American + further European
+  "COL", "URU", "MEX", "JPN", "USA", "SUI", "SEN", "IRN", "DEN", "AUT", "KOR", "ECU",
+  // Mid-tier qualifiers
+  "SWE", "TUR", "WAL", "UKR", "SRB", "EGY", "POL", "PAN", "CAN", "NOR", "PAR", "HUN",
+  // African + Asian + Oceania
+  "ALG", "VEN", "SCO", "CIV", "ROU", "GHA", "TUN", "AUS", "NGA", "CRC", "JAM", "KSA",
+  // Final spots including OFC qualifier
+  "QAT", "UZB", "CMR", "NZL"
+];
+
+/**
+ * Build full team entries for the WC 2026 field by joining the qualifier
+ * codes with their current FIFA ranking lookup. Teams without a ranking
+ * fall back to a reasonable mid-table default so the auto-seed still works.
+ */
+export function wc2026Teams(): { code: string; name: string; points: number }[] {
+  return WC_2026_QUALIFIERS.map((code) => {
+    const r = lookupRanking(code);
+    return {
+      code,
+      name: r?.name ?? code,
+      points: r?.points ?? 1400
+    };
+  });
 }
