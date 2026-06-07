@@ -69,6 +69,12 @@ export default async function TournamentPage({ params }: { params: { slug: strin
                 🎲 Draw & verify
               </Link>
               <Link
+                href={`/t/${tournament.slug}/groups`}
+                className="inline-flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-white ring-1 ring-white/10 hover:bg-white/10 transition"
+              >
+                📊 Groups
+              </Link>
+              <Link
                 href={`/t/${tournament.slug}/bracket`}
                 className="inline-flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-white ring-1 ring-white/10 hover:bg-white/10 transition"
               >

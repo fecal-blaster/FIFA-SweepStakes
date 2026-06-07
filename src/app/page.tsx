@@ -27,31 +27,32 @@ export default async function HomePage() {
         />
         <div className="relative z-10 max-w-3xl">
           <p className="text-[10px] uppercase tracking-[0.4em] text-lime-400 mb-3">
-            ◇ Self-hosted broadcast hub
+            ◇ Sweepstake HQ
           </p>
           <h1 className="display text-5xl sm:text-7xl text-white leading-[0.95]">
-            Run a sweepstake
+            FIFA sweepstakes
             <br />
             <span className="bg-gradient-to-r from-lime-400 via-cyan-400 to-gold-400 bg-clip-text text-transparent">
-              your friends actually trust.
+              for the lads.
             </span>
           </h1>
           <p className="mt-5 text-base text-white/70 max-w-xl">
-            Cryptographically fair team allocations. Verifiable draws from a public seed.
-            Live scoring straight from kickoff to full time. No spreadsheets, no arguments.
+            Bin the spreadsheet, draw the teams, watch the points roll in. Live
+            scores, an auto-updating leaderboard, and prize splits that work
+            themselves out by full time.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
-            <FeaturePill icon="🎲" text="Verifiable draws" />
-            <FeaturePill icon="⚖️" text="Balanced tier allocation" />
-            <FeaturePill icon="📺" text="Live match centre" />
-            <FeaturePill icon="🏆" text="Auto prize splits" />
+            <FeaturePill icon="🎲" text="No-one stitches the draw" />
+            <FeaturePill icon="📺" text="Scores update themselves" />
+            <FeaturePill icon="🏆" text="Prize maths sorted" />
+            <FeaturePill icon="🍻" text="Banter-ready leaderboard" />
           </div>
           <div className="mt-5">
             <Link
               href="/info"
               className="inline-flex items-center gap-2 rounded-lg bg-lime-500/10 px-3.5 py-2 text-sm font-medium text-lime-400 ring-1 ring-lime-500/30 hover:bg-lime-500/20 transition"
             >
-              See how it works →
+              How it works →
             </Link>
           </div>
         </div>

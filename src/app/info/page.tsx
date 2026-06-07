@@ -5,7 +5,7 @@ import { DEFAULT_SCORING } from "@/lib/scoring";
 export const metadata = {
   title: "How it works — FIFA Sweepstakes",
   description:
-    "How the draw is mathematically fair, how points are awarded, and how anyone can verify a draw was not manipulated."
+    "How the draw works, what gets you points, and why no-one can rig it."
 };
 
 export default function InfoPage() {
@@ -23,19 +23,18 @@ export default function InfoPage() {
         />
         <div className="relative z-10 max-w-3xl">
           <p className="text-[10px] uppercase tracking-[0.4em] text-lime-400 mb-3">
-            ◇ How it works
+            ◇ The rules
           </p>
           <h1 className="display text-4xl sm:text-5xl text-white leading-[0.95]">
-            Fair by maths,
+            How this thing
             <br />
             <span className="bg-gradient-to-r from-lime-400 via-cyan-400 to-gold-400 bg-clip-text text-transparent">
-              not by trust.
+              actually works.
             </span>
           </h1>
           <p className="mt-4 text-white/70 max-w-xl">
-            Three things make a sweepstake feel right: nobody can rig the draw,
-            everyone can check it afterwards, and the scoring is clear before
-            kickoff. Here's how each of those works.
+            How the teams get split up, what earns you points, and how to check
+            no-one fiddled the draw. Skim it before the first kickoff.
           </p>
         </div>
       </section>
@@ -43,12 +42,12 @@ export default function InfoPage() {
       {/* FAIRNESS */}
       <section className="grid lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
-          <SectionHeader eyebrow="No-one gets all the favourites" title="How the balanced draw works" />
+          <SectionHeader eyebrow="So nobody gets the bin teams" title="The balanced draw, in plain English" />
           <div className="space-y-3 text-sm text-white/75 leading-relaxed">
             <p>
-              In a pure-random draw, one person can theoretically pull Argentina,
-              France, Brazil, and England while another lands Costa Rica, Iran,
-              Tunisia, and Saudi Arabia. The maths allow it; it's just unfun.
+              Without this, Dave pulls Argentina, France, Brazil, and England
+              while you end up with Costa Rica, Iran, Tunisia, and Saudi Arabia.
+              That's the joke that gets old by the second match.
             </p>
             <p>
               Balanced mode prevents this. Teams are sorted into{" "}
@@ -140,32 +139,21 @@ export default function InfoPage() {
 
       {/* VERIFICATION */}
       <section>
-        <SectionHeader eyebrow="Trust, but verify" title="How anyone can audit a draw" />
+        <SectionHeader eyebrow="Nobody can fiddle the draw" title="Yes, you can check yourself" />
         <Card>
           <p className="text-sm text-white/70 leading-relaxed">
-            Every draw is keyed by a public{" "}
-            <span className="text-lime-400 font-mono">seed</span> (e.g.{" "}
-            <code className="text-lime-400">fifa2026-9a7c4d</code>) generated
-            from cryptographically secure entropy. The seed, the participant
-            list, the team list, and the resulting allocations are all hashed
-            with SHA-256 into a{" "}
-            <span className="text-lime-400 font-mono">verify hash</span> that's
-            stored permanently with the draw.
+            Every draw gets a public seed (e.g.{" "}
+            <code className="text-lime-400">fifa2026-9a7c4d</code>) plus a
+            SHA-256 hash of the result. Click <em>Verify draw</em> on the draw
+            page and the server re-runs the whole thing from the seed — if a
+            single team got moved after the fact, the hashes wouldn't match
+            and we'd know.
           </p>
           <p className="text-sm text-white/70 leading-relaxed mt-3">
-            To verify, anyone can call{" "}
-            <code className="text-cyan-400">
-              GET /api/tournaments/&lt;slug&gt;/draws/&lt;drawId&gt;/verify
-            </code>{" "}
-            — the server re-runs the allocation from the seed and confirms the
-            recomputed hash matches the stored one. If a single team had been
-            shuffled around after the fact, the hashes wouldn't match.
-          </p>
-          <p className="text-sm text-white/70 leading-relaxed mt-3">
-            Redraws can happen (e.g. team list correction), but they create a
-            new audit record with a documented reason. The old draw stays
-            visible forever, so the record is tamper-evident even from outside
-            the app.
+            Redraws are allowed (someone forgot to pay, or the team list was
+            wrong) but they get logged with a reason and the old draw stays
+            visible. The whole history is on the public draw page so nobody
+            has to take anyone's word for it.
           </p>
         </Card>
       </section>

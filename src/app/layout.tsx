@@ -50,13 +50,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="relative z-30 border-b border-white/5 bg-ink-950/60 backdrop-blur-xl sticky top-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3">
-              <span className="relative inline-flex w-9 h-9 items-center justify-center rounded-lg bg-gradient-to-br from-lime-500 to-cyan-500 text-ink-950 font-black text-lg shadow-glow">
-                ⚽
+              <span
+                className="relative inline-flex w-10 h-10 items-center justify-center rounded-lg bg-gradient-to-br from-lime-500 to-cyan-500 shadow-glow text-base"
+                style={{ fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif' }}
+                aria-hidden
+              >
+                🇮🇳⚽
               </span>
               <div className="flex flex-col leading-none">
                 <span className="display text-xl text-white">FIFA Sweepstakes</span>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">
-                  Live · Verifiable · Fair
+                  Live · Random · Pub-tested
                 </span>
               </div>
             </Link>
@@ -70,7 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-8">{children}</main>
         <footer className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-10 text-xs text-white/40">
           <div className="divider mb-6" />
-          <p>Every draw is reproducible from its public seed. Honest sport, honest software.</p>
+          <p>Run by mates, for mates. Now stop pretending you don't care who gets Argentina.</p>
         </footer>
       </body>
     </html>

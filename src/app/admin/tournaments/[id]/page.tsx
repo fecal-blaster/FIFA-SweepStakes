@@ -7,6 +7,8 @@ import { AdminTournamentControls } from "@/components/admin-tournament-controls"
 import { EditTournamentForm } from "@/components/edit-tournament-form";
 import { ScoringEditor } from "@/components/scoring-editor";
 import { DangerZone } from "@/components/danger-zone";
+import { BulkImport } from "@/components/bulk-import";
+import { MatchOverride } from "@/components/match-override";
 import type { ScoringRules } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +70,10 @@ export default async function AdminTournamentPage({ params }: { params: { id: st
           drawAt: t.drawAt?.toISOString() ?? null
         }}
       />
+
+      <BulkImport tournamentId={t.id} />
+
+      <MatchOverride tournamentId={t.id} slug={t.slug} />
 
       <ScoringEditor
         tournamentId={t.id}
