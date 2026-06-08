@@ -116,9 +116,19 @@ export const FIFA_RANKINGS: FifaRankingEntry[] = [
 
 const BY_CODE = new Map(FIFA_RANKINGS.map((r) => [r.code.toUpperCase(), r]));
 
+// football-data.org uses IOC 3-letter codes for a handful of countries that
+// differ from the FIFA codes we store. Map them so lookups still work.
+const TLA_ALIASES: Record<string, string> = {
+  URY: "URU", // Uruguay
+  CUW: "CUR", // Curaçao
+  GRC: "GRE"  // Greece
+};
+
 export function lookupRanking(code: string | null | undefined): FifaRankingEntry | null {
   if (!code) return null;
-  return BY_CODE.get(code.toUpperCase()) ?? null;
+  const upper = code.toUpperCase();
+  const aliased = TLA_ALIASES[upper] ?? upper;
+  return BY_CODE.get(aliased) ?? null;
 }
 
 /** ISO-2 → FIFA code helper for flag fallback. Not used by the ranking lookup
@@ -136,17 +146,27 @@ export function lookupRankingByName(name: string): FifaRankingEntry | null {
  * the list below reflects the most current bracket and an admin can swap
  * teams via the editor if reality shifts. Order is by current FIFA points.
  */
+// 48 qualified nations. Admin can swap any team via the tier editor if the
+// actual draw differs by the time the tournament starts.
 export const WC_2026_QUALIFIERS: string[] = [
-  // Top European sides
-  "ESP", "ARG", "FRA", "ENG", "POR", "NED", "BRA", "BEL", "CRO", "ITA", "MAR", "GER",
-  // South American + further European
-  "COL", "URU", "MEX", "JPN", "USA", "SUI", "SEN", "IRN", "DEN", "AUT", "KOR", "ECU",
-  // Mid-tier qualifiers
-  "SWE", "TUR", "WAL", "UKR", "SRB", "EGY", "POL", "PAN", "CAN", "NOR", "PAR", "HUN",
-  // African + Asian + Oceania
-  "ALG", "VEN", "SCO", "CIV", "ROU", "GHA", "TUN", "AUS", "NGA", "CRC", "JAM", "KSA",
-  // Final spots including OFC qualifier
-  "QAT", "UZB", "CMR", "NZL"
+  // 3 hosts
+  "USA", "CAN", "MEX",
+  // UEFA top
+  "ESP", "FRA", "ENG", "POR", "NED", "BEL", "CRO", "ITA", "GER",
+  // UEFA further
+  "AUT", "DEN", "SWE", "TUR", "UKR", "SRB", "POL",
+  // CONMEBOL
+  "ARG", "BRA", "COL", "URU", "ECU", "PAR",
+  // CAF
+  "MAR", "SEN", "EGY", "ALG", "CIV", "GHA", "TUN", "CMR", "NGA",
+  // AFC
+  "JPN", "IRN", "KOR", "AUS", "UZB", "QAT", "JOR", "KSA",
+  // CONCACAF additional
+  "PAN", "CRC", "JAM",
+  // OFC
+  "NZL",
+  // Inter-confederation playoff winners
+  "SUI", "HUN"
 ];
 
 /**

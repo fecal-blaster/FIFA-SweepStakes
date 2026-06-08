@@ -4,7 +4,8 @@ import { handleError, ok, parseJson } from "@/lib/api";
 import { requireAdmin } from "@/lib/session";
 import { inviteCode, slugify } from "@/lib/util";
 import { audit } from "@/lib/audit";
-import { wc2026Teams } from "@/lib/fifa-rankings";
+import { wc2026Teams, lookupRanking } from "@/lib/fifa-rankings";
+import { getProvider } from "@/lib/football";
 
 const CreateSchema = z.object({
   name: z.string().min(1).max(80).trim(),
@@ -53,7 +54,39 @@ export async function POST(req: Request) {
     const hasRealProvider =
       !!process.env.FOOTBALL_DATA_API_KEY &&
       (process.env.FOOTBALL_PROVIDER ?? "football-data-org") !== "mock";
-    if (input.competitionCode.toUpperCase() === "WC" && !hasRealProvider) {
+    if (hasRealProvider) {
+      // Pull the real team list from the configured provider so external IDs
+      // line up with future fixture syncs. Ranking points come from the FIFA
+      // reference list keyed on TLA (with IOC-code aliases for URY/CUW/GRC).
+      try {
+        const snapshot = await getProvider().fetchSnapshot(input.competitionCode);
+        const enriched = snapshot.teams.map((team) => ({
+          ...team,
+          rankingPoints: team.rankingPoints ?? lookupRanking(team.code)?.points ?? 1500
+        }));
+        enriched.sort((a, b) => (b.rankingPoints ?? 0) - (a.rankingPoints ?? 0));
+        if (enriched.length > 0) {
+          await prisma.team.createMany({
+            data: enriched.map((team, i) => ({
+              tournamentId: t.id,
+              externalId: team.externalId,
+              name: team.name,
+              shortName: team.shortName ?? null,
+              code: team.code ?? null,
+              crestUrl: team.crestUrl ?? null,
+              tier: Math.min(4, Math.max(1, Math.floor((i / enriched.length) * 4) + 1)),
+              rankingPoints: team.rankingPoints ?? 1500
+            })),
+            skipDuplicates: true
+          });
+          seededTeams = enriched.length;
+        }
+      } catch (e) {
+        console.error("[tournament-create] team auto-seed failed:", (e as Error).message);
+        // Admin can still click "Sync teams" manually.
+      }
+    } else if (input.competitionCode.toUpperCase() === "WC") {
+      // Mock / no-API fallback — use the hardcoded WC qualifier list.
       const field = wc2026Teams().sort((a, b) => b.points - a.points);
       await prisma.team.createMany({
         data: field.map((team, i) => ({
