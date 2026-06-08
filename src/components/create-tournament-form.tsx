@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
+import { dateTimeLocalToIso, timezoneLabel } from "@/lib/format";
 
 const CURRENCIES = [
   { code: "NZD", label: "NZ$ NZD — New Zealand Dollar" },
@@ -44,8 +45,8 @@ export function CreateTournamentForm() {
           currency,
           buyInMinor: Math.round(parseFloat(buyIn || "0") * 100),
           drawMode: mode,
-          registrationDeadline: regDeadline ? new Date(regDeadline).toISOString() : undefined,
-          drawAt: drawAt ? new Date(drawAt).toISOString() : undefined
+          registrationDeadline: dateTimeLocalToIso(regDeadline) ?? undefined,
+          drawAt: dateTimeLocalToIso(drawAt) ?? undefined
         })
       });
       if (!res.ok) {
@@ -116,7 +117,7 @@ export function CreateTournamentForm() {
           <option value="PURE_RANDOM">Pure random</option>
         </select>
       </Field>
-      <Field label="Registration closes (optional)">
+      <Field label={`Registration closes (${timezoneLabel()}, optional)`}>
         <input
           type="datetime-local"
           value={regDeadline}
@@ -124,7 +125,7 @@ export function CreateTournamentForm() {
           className="w-full rounded-lg bg-ink-900/70 ring-1 ring-white/10 px-3 py-2 text-white"
         />
       </Field>
-      <Field label="Draw date (optional)">
+      <Field label={`Draw date (${timezoneLabel()}, optional)`}>
         <input
           type="datetime-local"
           value={drawAt}

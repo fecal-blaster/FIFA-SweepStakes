@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, SectionHeader } from "@/components/ui";
+import { dateTimeLocalForInput, dateTimeLocalToIso, timezoneLabel } from "@/lib/format";
 
 const CURRENCIES = [
   "GBP", "USD", "EUR", "AUD", "CAD", "NZD", "CHF", "JPY", "SEK", "NOK", "DKK"
@@ -21,23 +22,17 @@ type Props = {
   };
 };
 
-// Strip "Z" so <input type=datetime-local> accepts the value, then write back
-// as full ISO when saving.
-function toLocalInput(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 export function EditTournamentForm({ tournament }: Props) {
   const router = useRouter();
   const [name, setName] = useState(tournament.name);
   const [currency, setCurrency] = useState(tournament.currency);
   const [buyIn, setBuyIn] = useState((tournament.buyInMinor / 100).toString());
   const [drawMode, setDrawMode] = useState(tournament.drawMode);
-  const [regDeadline, setRegDeadline] = useState(toLocalInput(tournament.registrationDeadline));
-  const [drawAt, setDrawAt] = useState(toLocalInput(tournament.drawAt));
+  // Inputs render and accept wall-clock values in APP_TZ (Pacific/Auckland
+  // by default), so an admin in any timezone sees the times the players see.
+  const [regDeadline, setRegDeadline] = useState(dateTimeLocalForInput(tournament.registrationDeadline));
+  const [drawAt, setDrawAt] = useState(dateTimeLocalForInput(tournament.drawAt));
+  const tzLabel = timezoneLabel();
   const [pending, setPending] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -56,8 +51,8 @@ export function EditTournamentForm({ tournament }: Props) {
           currency,
           buyInMinor: Math.round(parseFloat(buyIn || "0") * 100),
           drawMode,
-          registrationDeadline: regDeadline ? new Date(regDeadline).toISOString() : null,
-          drawAt: drawAt ? new Date(drawAt).toISOString() : null
+          registrationDeadline: dateTimeLocalToIso(regDeadline),
+          drawAt: dateTimeLocalToIso(drawAt)
         })
       });
       if (!res.ok) {
@@ -120,7 +115,7 @@ export function EditTournamentForm({ tournament }: Props) {
             <option value="PURE_RANDOM">Pure random</option>
           </select>
         </Field>
-        <Field label="Registration closes">
+        <Field label={`Registration closes (${tzLabel})`}>
           <input
             type="datetime-local"
             value={regDeadline}
@@ -128,7 +123,7 @@ export function EditTournamentForm({ tournament }: Props) {
             className={inputClass}
           />
         </Field>
-        <Field label="Draw date">
+        <Field label={`Draw date (${tzLabel})`}>
           <input
             type="datetime-local"
             value={drawAt}
