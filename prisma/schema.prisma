@@ -74,6 +74,10 @@ model Tournament {
   // Payout percentages stored as basis points (10000 = 100%)
   // Default: 50% / 33.33% / 16.67%  -> [5000, 3333, 1667]
   payoutBpsJson       Json             @default("[5000, 3333, 1667]")
+  // Richer prize structure (placement / wooden spoon / category) used when
+  // present. Falls back to payoutBpsJson for legacy tournaments.
+  // Each entry: { id, label, amountMinor, kind, position?, awardedParticipantId? }
+  prizesJson          Json?
   // Optional override of scoring rules
   scoringJson         Json?
   // Optional Discord webhook URL for notifications (draw run, results, champion)
@@ -233,6 +237,11 @@ model Match {
   awayScore     Int?
   // Includes penalty shootout winner if applicable: "HOME" | "AWAY" | null
   winnerSide    String?
+  // Per-match events from the provider (cards, goals, subs). Fetched lazily
+  // once per match (on first FINISHED sync). Used to auto-tally things like
+  // red cards for special-category prizes. Null = events not pulled yet.
+  eventsJson           Json?
+  lastEventsFetchedAt  DateTime?
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   homeTeam   Team?      @relation("HomeTeam", fields: [homeTeamId], references: [id])

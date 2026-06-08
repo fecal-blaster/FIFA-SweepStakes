@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { computeLeaderboard } from "@/lib/leaderboard";
-import { distributePrizePool, formatMoney } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
 import { Card, SectionHeader, StatTile, StatusBadge } from "@/components/ui";
 import { LiveLeaderboard } from "@/components/live-leaderboard";
 import { LiveMatches } from "@/components/live-matches";
@@ -23,10 +23,6 @@ export default async function TournamentPage({ params }: { params: { slug: strin
   if (!tournament) notFound();
 
   const board = await computeLeaderboard(tournament.id);
-  const payouts = distributePrizePool(
-    board.prizePoolMinor,
-    (tournament.payoutBpsJson as number[]) ?? [5000, 3333, 1667]
-  );
 
   return (
     <div className="space-y-8">
@@ -164,31 +160,30 @@ export default async function TournamentPage({ params }: { params: { slug: strin
         </Card>
 
         <Card>
-          <SectionHeader eyebrow="Prize split" title="Payouts" />
+          <SectionHeader eyebrow="Prizes" title="Payouts" />
           <ul className="space-y-2 tabular">
-            {payouts.map((p, i) => (
+            {board.prizes.map((p) => (
               <li
-                key={i}
+                key={p.id}
                 className="flex items-center justify-between rounded-lg bg-white/3 px-3 py-2"
               >
-                <span className="flex items-center gap-2 text-white/70">
-                  <span
-                    className={
-                      i === 0
-                        ? "text-gold-400 text-lg"
-                        : i === 1
-                          ? "text-silver-400 text-lg"
-                          : i === 2
-                            ? "text-bronze-400 text-lg"
-                            : "text-white/40 text-lg"
-                    }
-                  >
-                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "•"}
+                <span className="flex items-center gap-2 text-white/70 min-w-0">
+                  <span className="text-lg shrink-0">{prizeIcon(p)}</span>
+                  <span className="text-sm min-w-0">
+                    <span className="block truncate">{p.label}</span>
+                    {p.winnerName ? (
+                      <span className="block text-[10px] uppercase tracking-[0.18em] text-lime-400 truncate">
+                        {p.winnerName}
+                      </span>
+                    ) : (
+                      <span className="block text-[10px] uppercase tracking-[0.18em] text-white/35">
+                        — to be awarded —
+                      </span>
+                    )}
                   </span>
-                  <span className="text-sm">{ordinal(i + 1)} place</span>
                 </span>
-                <span className="font-semibold text-white scoreboard-num">
-                  {formatMoney(p, board.currency)}
+                <span className="font-semibold text-white scoreboard-num shrink-0">
+                  {formatMoney(p.amountMinor, board.currency)}
                 </span>
               </li>
             ))}
@@ -219,4 +214,12 @@ function ordinal(n: number): string {
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function prizeIcon(p: { kind: string; position?: number }): string {
+  if (p.kind === "PLACEMENT") {
+    return p.position === 1 ? "🥇" : p.position === 2 ? "🥈" : p.position === 3 ? "🥉" : "🎖";
+  }
+  if (p.kind === "WOODEN_SPOON") return "🥄";
+  return "⭐";
 }

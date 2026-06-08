@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { getProvider, type ProviderMatch } from "@/lib/football";
 import { DEFAULT_SCORING, QUALIFY_KIND, type ScoringRules } from "@/lib/scoring";
 import type { MatchStage } from "@prisma/client";
@@ -9,6 +10,7 @@ export type SyncReport = {
   matchesUpserted: number;
   scoreEventsCreated: number;
   championDecided: boolean;
+  eventsFetched: number;
 };
 
 // Maps each knockout match to "if a team appears here, it has qualified for X".
@@ -157,7 +159,43 @@ export async function syncTournament(tournamentId: string): Promise<SyncReport> 
     }
   }
 
-  return { matchesUpserted, scoreEventsCreated, championDecided };
+  // Lazily fetch per-match events (bookings, goals) for any match that's
+  // FINISHED but doesn't yet have events stored. One fetch per match, ever
+  // (idempotent on lastEventsFetchedAt). Keeps API quota sane.
+  let eventsFetched = 0;
+  const provider = getProvider();
+  if (provider.fetchMatchEvents) {
+    const needEvents = await prisma.match.findMany({
+      where: {
+        tournamentId: tournament.id,
+        status: "FINISHED",
+        eventsJson: { equals: Prisma.AnyNull } as never,
+        externalId: { not: null }
+      },
+      select: { id: true, externalId: true },
+      take: 5 // cap per tick so we don't blow the rate limit on backfills
+    });
+    for (const m of needEvents) {
+      if (!m.externalId) continue;
+      try {
+        const events = await provider.fetchMatchEvents(m.externalId);
+        if (events) {
+          await prisma.match.update({
+            where: { id: m.id },
+            data: {
+              eventsJson: events as unknown as object,
+              lastEventsFetchedAt: new Date()
+            }
+          });
+          eventsFetched++;
+        }
+      } catch (e) {
+        console.error(`[sync] events fetch failed for ${m.externalId}:`, (e as Error).message);
+      }
+    }
+  }
+
+  return { matchesUpserted, scoreEventsCreated, championDecided, eventsFetched };
 }
 
 function qualifyPointsFor(rules: ScoringRules, stage: MatchStage): number {

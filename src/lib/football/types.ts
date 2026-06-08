@@ -36,7 +36,20 @@ export type ProviderSnapshot = {
   matches: ProviderMatch[];
 };
 
+export type ProviderMatchEvent = {
+  /** RED_CARD | YELLOW_RED_CARD | YELLOW_CARD | GOAL | PENALTY | OWN_GOAL | SUBSTITUTION | ... */
+  type: string;
+  /** External team id this event belongs to. */
+  teamExtId?: string;
+  /** Minute in the match (1-90+). */
+  minute?: number;
+  player?: string;
+};
+
 export interface FootballProvider {
   name: string;
   fetchSnapshot(competitionCode: string): Promise<ProviderSnapshot>;
+  /** Per-match events. Returns null if the provider doesn't support it
+   *  (e.g. mock provider). */
+  fetchMatchEvents?(externalMatchId: string): Promise<ProviderMatchEvent[] | null>;
 }

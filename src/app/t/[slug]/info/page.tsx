@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Card, Flag, SectionHeader } from "@/components/ui";
 import { DEFAULT_SCORING, type ScoringRules } from "@/lib/scoring";
-import { distributePrizePool, formatMoney } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
+import { resolvePrizes } from "@/lib/prizes";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +20,10 @@ export default async function TournamentInfoPage({ params }: { params: { slug: s
 
   const rules: ScoringRules = (t.scoringJson as unknown as ScoringRules) ?? DEFAULT_SCORING;
   const usingDefaultScoring = t.scoringJson === null;
-  const payoutBps = (t.payoutBpsJson as number[]) ?? [5000, 3333, 1667];
   const pool = t.participants.length * t.buyInMinor;
-  const projectedPrizes = distributePrizePool(pool, payoutBps);
+  const prizes = resolvePrizes(t.prizesJson, {
+    payoutBpsJson: t.payoutBpsJson
+  });
 
   const teamCount = t.teams.length;
   const playerCount = t.participants.length;
@@ -177,21 +179,29 @@ export default async function TournamentInfoPage({ params }: { params: { slug: s
           title="Payouts"
         />
         <ul className="grid sm:grid-cols-2 gap-2">
-          {payoutBps.map((bp, i) => (
+          {prizes.map((p) => (
             <li
-              key={i}
+              key={p.id}
               className="flex items-center justify-between rounded-lg bg-ink-900/60 ring-1 ring-white/8 px-3 py-2"
             >
               <span className="flex items-center gap-2">
                 <span className="text-lg">
-                  {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "•"}
+                  {p.kind === "PLACEMENT"
+                    ? p.position === 1
+                      ? "🥇"
+                      : p.position === 2
+                        ? "🥈"
+                        : p.position === 3
+                          ? "🥉"
+                          : "🎖"
+                    : p.kind === "WOODEN_SPOON"
+                      ? "🥄"
+                      : "⭐"}
                 </span>
-                <span className="text-sm text-white/75">
-                  {ordinal(i + 1)} place ({(bp / 100).toFixed(2)}%)
-                </span>
+                <span className="text-sm text-white/75">{p.label}</span>
               </span>
               <span className="scoreboard-num text-lime-400">
-                {formatMoney(projectedPrizes[i] ?? 0, t.currency)}
+                {formatMoney(Math.floor((pool * p.shareBps) / 10000), t.currency)}
               </span>
             </li>
           ))}

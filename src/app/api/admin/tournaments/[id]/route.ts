@@ -19,6 +19,15 @@ const ScoringSchema = z
   })
   .nullable();
 
+const PrizeSchema = z.object({
+  id: z.string().min(1).max(60),
+  label: z.string().min(1).max(80),
+  shareBps: z.number().int().min(0).max(10000),
+  kind: z.enum(["PLACEMENT", "WOODEN_SPOON", "MOST_RED_CARDS", "CATEGORY"]),
+  position: z.number().int().min(1).max(50).optional(),
+  awardedParticipantId: z.string().min(1).max(60).optional()
+});
+
 const PatchSchema = z.object({
   name: z.string().min(1).max(80).optional(),
   currency: z.string().length(3).optional(),
@@ -28,6 +37,7 @@ const PatchSchema = z.object({
   registrationDeadline: z.string().datetime().nullable().optional(),
   drawAt: z.string().datetime().nullable().optional(),
   payoutBps: z.array(z.number().int().min(0).max(10000)).min(1).max(8).nullable().optional(),
+  prizes: z.array(PrizeSchema).max(20).nullable().optional(),
   scoring: ScoringSchema.optional(),
   discordWebhookUrl: z
     .string()
@@ -58,6 +68,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         drawAt: input.drawAt === undefined ? undefined : input.drawAt ? new Date(input.drawAt) : null,
         payoutBpsJson:
           input.payoutBps === undefined ? undefined : (input.payoutBps ?? [5000, 3333, 1667]),
+        prizesJson:
+          input.prizes === undefined
+            ? undefined
+            : input.prizes === null
+              ? Prisma.JsonNull
+              : (input.prizes as unknown as Prisma.InputJsonValue),
         scoringJson:
           input.scoring === undefined
             ? undefined

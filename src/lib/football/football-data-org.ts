@@ -1,4 +1,10 @@
-import type { FootballProvider, ProviderMatch, ProviderSnapshot, ProviderTeam } from "./types";
+import type {
+  FootballProvider,
+  ProviderMatch,
+  ProviderMatchEvent,
+  ProviderSnapshot,
+  ProviderTeam
+} from "./types";
 import type { MatchStage, MatchStatus } from "@prisma/client";
 
 const BASE = "https://api.football-data.org/v4";
@@ -166,5 +172,48 @@ export class FootballDataOrgProvider implements FootballProvider {
     });
 
     return { teams, matches };
+  }
+
+  /** Pull the rich /matches/{id} payload — includes bookings (yellow/red),
+   *  goals, and substitutions. Used to tally red cards. */
+  async fetchMatchEvents(externalMatchId: string): Promise<ProviderMatchEvent[] | null> {
+    type FdSingleMatch = {
+      bookings?: {
+        minute?: number;
+        team?: { id?: number };
+        player?: { name?: string };
+        card?: string; // "YELLOW" | "YELLOW_RED" | "RED"
+      }[];
+      goals?: {
+        minute?: number;
+        team?: { id?: number };
+        scorer?: { name?: string };
+        type?: string; // "REGULAR" | "OWN" | "PENALTY"
+      }[];
+    };
+    const data = await this.get<FdSingleMatch>(`/matches/${externalMatchId}`);
+    const events: ProviderMatchEvent[] = [];
+    for (const b of data.bookings ?? []) {
+      const card = (b.card ?? "").toUpperCase();
+      const type =
+        card === "RED" ? "RED_CARD" : card === "YELLOW_RED" ? "YELLOW_RED_CARD" : "YELLOW_CARD";
+      events.push({
+        type,
+        teamExtId: b.team?.id != null ? String(b.team.id) : undefined,
+        minute: b.minute,
+        player: b.player?.name
+      });
+    }
+    for (const g of data.goals ?? []) {
+      const t = (g.type ?? "").toUpperCase();
+      const type = t === "OWN" ? "OWN_GOAL" : t === "PENALTY" ? "PENALTY" : "GOAL";
+      events.push({
+        type,
+        teamExtId: g.team?.id != null ? String(g.team.id) : undefined,
+        minute: g.minute,
+        player: g.scorer?.name
+      });
+    }
+    return events;
   }
 }
