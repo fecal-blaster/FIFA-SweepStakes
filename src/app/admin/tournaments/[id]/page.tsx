@@ -11,6 +11,8 @@ import { BulkImport } from "@/components/bulk-import";
 import { MatchOverride } from "@/components/match-override";
 import { DiscordConfig } from "@/components/discord-config";
 import { TeamTierEditor } from "@/components/team-tier-editor";
+import { PrizeEditor } from "@/components/prize-editor";
+import { resolvePrizes } from "@/lib/prizes";
 import type { ScoringRules } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +78,14 @@ export default async function AdminTournamentPage({ params }: { params: { id: st
       <BulkImport tournamentId={t.id} />
 
       <MatchOverride tournamentId={t.id} slug={t.slug} />
+
+      <PrizeEditor
+        tournamentId={t.id}
+        currency={t.currency}
+        initialPrizes={resolvePrizes(t.prizesJson, { payoutBpsJson: t.payoutBpsJson })}
+        participants={t.participants.map((p) => ({ id: p.id, name: p.name }))}
+        expectedPoolMinor={t.participants.filter((p) => p.paid).length * t.buyInMinor}
+      />
 
       <ScoringEditor
         tournamentId={t.id}
