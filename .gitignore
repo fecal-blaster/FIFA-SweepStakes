@@ -10,3 +10,8 @@ out
 .idea
 coverage
 prisma/dev.db*
+# Stray Python bytecode caches that macOS Python writes to HOME/Library/Caches —
+# can appear if a script accidentally cds into a cuid-named dir.
+cm*/Library/
+__pycache__/
+*.pyc
